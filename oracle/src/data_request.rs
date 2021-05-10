@@ -162,6 +162,7 @@ impl ResolutionWindowChange for ResolutionWindow {
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct DataRequest {
     pub id: u64,
+    pub description: Option<String>,
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
     pub requestor: mock_requestor::Requestor,
@@ -226,7 +227,8 @@ impl DataRequestChange for DataRequest {
             initial_challenge_period: request_data.challenge_period,
             settlement_time: request_data.settlement_time.into(),
             final_arbitrator_triggered: false,
-            target_contract: mock_target_contract::TargetContract(request_data.target_contract)
+            target_contract: mock_target_contract::TargetContract(request_data.target_contract),
+            description: request_data.description,
         }
     }
 
@@ -416,12 +418,11 @@ impl DataRequestView for DataRequest {
     }
 
     fn assert_reached_settlement_time(&self) {
-        let settlement_time = u64::from(self.settlement_time);
         assert!(
-            settlement_time <= u64::from(env::block_timestamp()),
+            self.settlement_time <= env::block_timestamp(),
             "Cannot stake on `DataRequest` {} until settlement time {}",
             self.id,
-            settlement_time
+            self.settlement_time
         );
     }
 
@@ -707,6 +708,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -723,6 +725,7 @@ mod mock_token_basic_tests {
             challenge_period: 0,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -738,6 +741,7 @@ mod mock_token_basic_tests {
             challenge_period: 0,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -762,6 +766,7 @@ mod mock_token_basic_tests {
             challenge_period: 1000,
             settlement_time: U64(0),
             target_contract: target(),
+            description: None,
         });
     }
 
@@ -788,6 +793,23 @@ mod mock_token_basic_tests {
             challenge_period: 1000,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Description should be filled when no sources are given")]
+    fn dr_description_required_no_sources() {
+        testing_env!(get_context(token()));
+        let whitelist = Some(vec![to_valid(bob()), to_valid(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        contract.dr_new(bob(), 100, NewDataRequestArgs{
+            sources: vec![],
+            outcomes: None,
+            challenge_period: 1000,
+            settlement_time: U64(0),
+            target_contract: target(),
+            description: None,
         });
     }
 
@@ -804,6 +826,7 @@ mod mock_token_basic_tests {
             challenge_period: 999,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -820,6 +843,7 @@ mod mock_token_basic_tests {
             challenge_period: 3001,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -836,6 +860,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -851,6 +876,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
         assert_eq!(amount, 100);
     }
@@ -867,6 +893,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
         assert_eq!(amount, 0);
     }
@@ -878,6 +905,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -961,6 +989,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
@@ -1686,6 +1715,7 @@ mod mock_token_basic_tests {
             challenge_period: 1500,
             settlement_time: U64(100),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
 
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{
