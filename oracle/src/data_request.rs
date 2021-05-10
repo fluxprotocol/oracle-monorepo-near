@@ -321,7 +321,10 @@ impl DataRequestChange for DataRequest {
             self.resolution_windows.replace(round as u64, &window);
         };
 
-        let profit = helpers::calc_product(user_correct_stake, total_incorrect_staked, total_correct_staked);
+        let profit = match total_correct_staked {
+            0 => 0,
+            _ => helpers::calc_product(user_correct_stake, total_incorrect_staked, total_correct_staked)
+        };
 
         logger::log_claim(&account_id, self.id, total_correct_staked, total_incorrect_staked, user_correct_stake, profit);
         user_correct_stake + profit
