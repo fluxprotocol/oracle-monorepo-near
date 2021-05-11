@@ -16,6 +16,7 @@ mod oracle_config;
 mod storage_manager;
 mod helpers;
 mod logger;
+mod upgrade;
 
 /// Mocks
 mod mock_requestor;
