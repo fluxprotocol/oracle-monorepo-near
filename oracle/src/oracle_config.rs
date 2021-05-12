@@ -36,12 +36,13 @@ impl Contract {
         logger::log_oracle_config(&new_config, self.configs.len() - 1);
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
     }
-}
-
-impl Contract {
+    
     pub fn get_config(&self) -> OracleConfig {
         self.configs.iter().last().unwrap()
     }
+}
+
+impl Contract {
 
     pub fn assert_sender(&self, expected_sender: &AccountId) {
         assert_eq!(&env::predecessor_account_id(), expected_sender, "This function can only be called by {}", expected_sender);
