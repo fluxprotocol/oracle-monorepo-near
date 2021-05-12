@@ -32,6 +32,7 @@ pub fn log_new_data_request(request: &DataRequest) {
             "params": {
                 "id": U64(request.id),
                 "sources": request.sources,
+                "description": request.description,
                 "outcomes": request.outcomes,
                 "requestor": request.requestor.0,
                 "finalized_outcome": request.finalized_outcome,
