@@ -7,6 +7,8 @@ use near_sdk::serde::Serialize;
 /// It's 10 times lower than the genesis price.
 pub const STORAGE_PRICE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
 
+pub const STORAGE_MINIMUM_BALANCE: Balance = 10_000_000_000_000_000_000_000;
+
 #[derive(Serialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct AccountStorageBalance {
@@ -68,7 +70,7 @@ impl StorageManager for Contract {
     }
 
     fn storage_minimum_balance(&self) -> U128 {
-        U128(0)
+        U128(STORAGE_MINIMUM_BALANCE)
     }
 
     fn storage_balance_of(&self, account_id: ValidAccountId) -> AccountStorageBalance {
