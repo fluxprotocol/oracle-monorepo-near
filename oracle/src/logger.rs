@@ -42,6 +42,7 @@ pub fn log_new_data_request(request: &DataRequest) {
                 "target_contract": request.target_contract.0,
                 "global_config_id": U64(request.global_config_id),
                 "tags": request.tags,
+                "data_type": request.data_type,
 
                 "date": U64(ns_to_ms(env::block_timestamp())),
                 "block_height": U64(env::block_index()),

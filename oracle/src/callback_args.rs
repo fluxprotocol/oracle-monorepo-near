@@ -1,4 +1,5 @@
 use crate::*;
+use data_request::DataRequestDataType;
 use near_sdk::serde::{ Serialize, Deserialize };
 
 const MAX_SOURCES: u8 = 8;
@@ -14,6 +15,7 @@ pub struct NewDataRequestArgs {
     pub challenge_period: WrappedTimestamp,
     pub settlement_time: WrappedTimestamp,
     pub target_contract: AccountId,
+    pub data_type: DataRequestDataType,
 }
 
 impl Contract {
@@ -22,6 +24,7 @@ impl Contract {
         let challenge_period: u64 = data_request.challenge_period.into();
         let default_challenge_window_duration: u64 = config.default_challenge_window_duration.into();
         let min_initial_challenge_window_duration: u64 = config.min_initial_challenge_window_duration.into();
+        
         assert!((data_request.description.is_none() && data_request.sources.len() as u8 != 0) || data_request.description.is_some(), "Description should be filled when no sources are given");
         assert!(data_request.sources.len() as u8 <= MAX_SOURCES, "Too many sources provided, max sources is: {}", MAX_SOURCES);
         assert!(challenge_period >= u64::from(min_initial_challenge_window_duration), "Challenge shorter than minimum challenge period of {}", min_initial_challenge_window_duration);

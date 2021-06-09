@@ -1,4 +1,5 @@
 use near_sdk::json_types::U64;
+
 /// Raw type for timestamp in nanoseconds
 pub type Timestamp = u64;
 pub type WrappedTimestamp = U64;
