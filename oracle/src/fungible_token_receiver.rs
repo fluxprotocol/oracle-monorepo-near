@@ -1,6 +1,5 @@
 use crate::*;
 
-use storage_manager::{ STORAGE_PRICE_PER_BYTE };
 use near_sdk::serde::{ Serialize, Deserialize };
 use near_sdk::serde_json;
 

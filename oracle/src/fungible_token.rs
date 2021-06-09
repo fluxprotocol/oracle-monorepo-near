@@ -21,7 +21,7 @@ pub fn fungible_token_transfer(token_account_id: AccountId, receiver_id: Account
         U128(value),
         None,
 
-        // Near params
+        // NEAR params
         &token_account_id,
         1,
         GAS_BASE_TRANSFER
