@@ -160,7 +160,7 @@ impl ResolutionWindowChange for ResolutionWindow {
 
 #[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
 pub enum DataRequestDataType {
-    Number,
+    Number(U128),
     String,
 }
 
@@ -179,7 +179,8 @@ pub struct DataRequest {
     pub initial_challenge_period: Duration,
     pub final_arbitrator_triggered: bool,
     pub target_contract: target_contract_handler::TargetContract,
-    pub tags: Option<Vec<String>>
+    pub tags: Option<Vec<String>>,
+    pub data_type: DataRequestDataType,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -234,7 +235,8 @@ impl DataRequestChange for DataRequest {
             final_arbitrator_triggered: false,
             target_contract: target_contract_handler::TargetContract(request_data.target_contract),
             description: request_data.description,
-            tags: request_data.tags
+            tags: request_data.tags,
+            data_type: request_data.data_type,
         }
     }
 
@@ -732,6 +734,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -750,6 +753,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -767,6 +771,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -793,6 +798,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: None,
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -821,6 +827,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -838,6 +845,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: None,
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -856,6 +864,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -874,6 +883,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -892,6 +902,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -909,6 +920,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
         assert_eq!(amount, 100);
     }
@@ -927,6 +939,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
         assert_eq!(amount, 0);
     }
@@ -940,6 +953,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
     }
 
@@ -1025,6 +1039,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
@@ -1752,6 +1767,7 @@ mod mock_token_basic_tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: data_request::DataRequestDataType::String,
         });
 
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{

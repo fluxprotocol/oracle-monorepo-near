@@ -44,6 +44,7 @@ pub fn log_new_data_request(request: &DataRequest) {
                 "tags": request.tags,
                 "date": U64(ns_to_ms(env::block_timestamp())),
                 "block_height": U64(env::block_index()),
+                "data_type": request.data_type,
             }
         })
         .to_string()
