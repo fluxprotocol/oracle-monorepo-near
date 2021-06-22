@@ -14,6 +14,7 @@ use crate::{
         DataRequest,
         ResolutionWindow,
         Outcome,
+        AnswerType,
     },
     oracle_config::{
         OracleConfig
@@ -131,7 +132,10 @@ fn outcome_to_id(outcome: &Outcome) -> String {
     // We append ans_ infront of an answer to avoid malicous fake invalids
     // that would overwrite a real invalid outcome
     match outcome {
-        Outcome::Answer(a) => format!("ans_{}", a),
+        Outcome::Answer(answer) =>  match answer {
+            AnswerType::String(str_ans) => format!("ans_str_{}", str_ans),
+            AnswerType::Number(num_ans) => format!("ans_num_{}_{}_{}", num_ans.value.0, num_ans.multiplier.0, num_ans.negative),
+        },
         Outcome::Invalid => "invalid".to_string()
     }
 }

@@ -1,4 +1,5 @@
 use crate::utils::*;
+use oracle::data_request::AnswerType;
 
 #[test]
 fn dr_resolution_flow_test() {
@@ -13,7 +14,7 @@ fn dr_resolution_flow_test() {
     
     let dr_exist = init_res.alice.dr_exists(0);
     assert!(dr_exist, "something went wrong during dr creation");
-    let outcome = data_request::Outcome::Answer("test".to_string());
+    let outcome = data_request::Outcome::Answer(AnswerType::String("test".to_string()));
     let _res = init_res.alice.stake(0, outcome, stake_amount);
 
     let _post_stake_balance_oracle = init_res.alice.get_token_balance(Some(ORACLE_CONTRACT_ID.to_string()));

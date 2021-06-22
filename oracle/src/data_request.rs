@@ -13,8 +13,21 @@ use crate::fungible_token::{ fungible_token_transfer };
 const PERCENTAGE_DIVISOR: u16 = 10_000;
 
 #[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub struct AnswerNumberType {
+    pub value: U128,
+    pub multiplier: U128,
+    pub negative: bool,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub enum AnswerType {
+    Number(AnswerNumberType),
+    String(String)
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub enum Outcome {
-    Answer(String),
+    Answer(AnswerType),
     Invalid
 }
 
@@ -158,7 +171,7 @@ impl ResolutionWindowChange for ResolutionWindow {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq)]
 pub enum DataRequestDataType {
     Number(U128),
     String,
@@ -354,6 +367,7 @@ impl DataRequestChange for DataRequest {
 
 trait DataRequestView {
     fn assert_valid_outcome(&self, outcome: &Outcome);
+    fn assert_valid_outcome_type(&self, outcome: &Outcome);
     fn assert_can_stake_on_outcome(&self, outcome: &Outcome);
     fn assert_not_finalized(&self);
     fn assert_finalized(&self);
@@ -372,10 +386,35 @@ impl DataRequestView for DataRequest {
     fn assert_valid_outcome(&self, outcome: &Outcome) {
         match &self.outcomes {
             Some(outcomes) => match outcome {
-                Outcome::Answer(outcome) => assert!(outcomes.contains(&outcome), "Incompatible outcome"),
+                Outcome::Answer(outcome) => {
+                    // Only strings can be staked when an array of outcomes are set
+                    match outcome {
+                        AnswerType::String(string_answer) => assert!(outcomes.contains(&string_answer), "Incompatible outcome"),
+                        _ => panic!("ERR_OUTCOME_NOT_STRING"),
+                    };
+
+
+                }
                 Outcome::Invalid => ()
             },
             None => ()
+        }
+    }
+
+    fn assert_valid_outcome_type(&self, outcome: &Outcome) {
+        match outcome {
+            Outcome::Answer(answer) => {
+                match answer {
+                    AnswerType::String(_) => assert_eq!(self.data_type, DataRequestDataType::String, "ERR_WRONG_OUTCOME_TYPE"),
+                    AnswerType::Number(ans_num) => {
+                        match self.data_type {
+                            DataRequestDataType::Number(dr_multiplier) => assert_eq!(dr_multiplier, ans_num.multiplier, "ERR_WRONG_MULTIPLIER"),
+                            _ => panic!("ERR_WRONG_OUTCOME_TYPE"),
+                        }
+                    }
+                }
+            }
+            _ => ()
         }
     }
 
@@ -526,7 +565,7 @@ impl Contract {
 
         // forward amount minus validity bond to request interface
         let amount_to_send = amount - validity_bond;
-        fungible_token_transfer(config.stake_token, dr.requestor, amount_to_send);
+        // fungible_token_transfer(config.stake_token, dr.requestor, amount_to_send);
 
         if amount > validity_bond {
             amount_to_send
@@ -544,6 +583,7 @@ impl Contract {
         dr.assert_final_arbitrator_not_invoked();
         dr.assert_can_stake_on_outcome(&payload.outcome);
         dr.assert_valid_outcome(&payload.outcome);
+        dr.assert_valid_outcome_type(&payload.outcome);
         dr.assert_not_finalized();
 
         let unspent_stake = dr.stake(sender, payload.outcome, amount);
@@ -968,7 +1008,7 @@ mod mock_token_basic_tests {
         testing_env!(get_context(alice()));
         contract.dr_stake(alice(),100,  StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("42".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("42".to_string()))
         });
     }
 
@@ -980,7 +1020,7 @@ mod mock_token_basic_tests {
         let mut contract = Contract::new(whitelist, config());
         contract.dr_stake(alice(),100,  StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("42".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("42".to_string()))
         });
     }
 
@@ -994,7 +1034,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(),100,  StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("42".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("42".to_string()))
         });
     }
 
@@ -1008,7 +1048,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         let mut ct : VMContext = get_context(token());
@@ -1019,7 +1059,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
     }
 
@@ -1044,7 +1084,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
     }
 
@@ -1057,7 +1097,7 @@ mod mock_token_basic_tests {
 
         let _b = contract.dr_stake(alice(), 5, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         // assert_eq!(b, 0, "Invalid balance");
 
@@ -1080,7 +1120,7 @@ mod mock_token_basic_tests {
 
         let _b = contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         // assert_eq!(b, 0, "Invalid balance");
 
@@ -1111,7 +1151,7 @@ mod mock_token_basic_tests {
 
         let _b = contract.dr_stake(alice(), 300, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         // assert_eq!(b, 100, "Invalid balance");
 
@@ -1141,7 +1181,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         contract.dr_finalize(U64(0));
@@ -1168,7 +1208,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         contract.dr_finalize(U64(0));
@@ -1183,7 +1223,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         let mut ct : VMContext = get_context(token());
@@ -1194,7 +1234,7 @@ mod mock_token_basic_tests {
 
         let request : DataRequest = contract.data_requests.get(0).unwrap();
         assert_eq!(request.resolution_windows.len(), 2);
-        assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer("a".to_string()));
+        assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
     }
 
     #[test]
@@ -1207,12 +1247,12 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 300, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         contract.dr_stake(alice(), 500, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
     }
 
@@ -1237,7 +1277,7 @@ mod mock_token_basic_tests {
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
 
-        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer("a".to_string()), U128(0));
+        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer(AnswerType::String("a".to_string())), U128(0));
     }
 
     #[test]
@@ -1247,9 +1287,9 @@ mod mock_token_basic_tests {
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer("a".to_string()), U128(0));
+        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer(AnswerType::String("a".to_string())), U128(0));
     }
 
     #[test]
@@ -1259,9 +1299,9 @@ mod mock_token_basic_tests {
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer("c".to_string()), U128(1));
+        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer(AnswerType::String("c".to_string())), U128(1));
     }
 
     #[test]
@@ -1274,11 +1314,11 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer("b".to_string()), U128(11));
+        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer(AnswerType::String("b".to_string())), U128(11));
     }
 
     #[test]
@@ -1288,10 +1328,10 @@ mod mock_token_basic_tests {
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
 
-        let outcome = data_request::Outcome::Answer("b".to_string());
+        let outcome = data_request::Outcome::Answer(AnswerType::String("b".to_string()));
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
 
         testing_env!(get_context(alice()));
@@ -1306,7 +1346,7 @@ mod mock_token_basic_tests {
             resolution_windows.get(0).unwrap().
             outcome_to_stake.get(&outcome).unwrap(), 10);
 
-        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer("b".to_string()), U128(1));
+        contract.dr_unstake(U64(0), 0, data_request::Outcome::Answer(AnswerType::String("b".to_string())), U128(1));
 
         // verify storage after unstake
         assert_eq!(contract.
@@ -1335,7 +1375,7 @@ mod mock_token_basic_tests {
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         contract.dr_claim(alice(), U64(0));
     }
@@ -1346,7 +1386,7 @@ mod mock_token_basic_tests {
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // validity bond
@@ -1359,7 +1399,7 @@ mod mock_token_basic_tests {
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // validity bond
@@ -1375,7 +1415,7 @@ mod mock_token_basic_tests {
         config.validity_bond = U128(2);
         let mut contract = Contract::new(whitelist, config);
         dr_new(&mut contract);
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // fees (100% of TVL)
@@ -1391,9 +1431,9 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(bob(), 100, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // validity bond
@@ -1412,9 +1452,9 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(bob(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
-        dr_finalize(&mut contract, data_request::Outcome::Answer("b".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // validity bond + round 0 stake
@@ -1433,13 +1473,13 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(bob(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(carol(), 100, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
-        dr_finalize(&mut contract, data_request::Outcome::Answer("b".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // validity bond + round 0 stake
@@ -1459,13 +1499,13 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(bob(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(carol(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // round 1 stake
@@ -1486,17 +1526,17 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(bob(), 100, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(dave(), 100, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(carol(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // round 1 stake
@@ -1519,17 +1559,17 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(bob(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(carol(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
         contract.dr_stake(dave(), 300, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
-        dr_finalize(&mut contract, data_request::Outcome::Answer("a".to_string()));
+        dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // 5/8 of round 1 stake
@@ -1551,16 +1591,16 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         // This round exceeds final arb limit, will be used as signal
         contract.dr_stake(bob(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("a".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // TODO should be 500, validity bond (100) + last round (400)
@@ -1580,20 +1620,20 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(bob(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
         // This round exceeds final arb limit, will be used as signal
         contract.dr_stake(carol(), 800, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("a".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         // validity bond
@@ -1615,20 +1655,20 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(bob(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
         // This round exceeds final arb limit, will be used as signal
         contract.dr_stake(carol(), 800, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("b".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
         assert_eq!(d.claim(alice()), 0);
@@ -1648,15 +1688,15 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         contract.dr_stake(bob(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
         contract.dr_stake(carol(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
     }
 
@@ -1673,11 +1713,11 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("c".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("c".to_string())));
     }
 
     #[test]
@@ -1693,11 +1733,11 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
 
         testing_env!(get_context(bob()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("b".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
     }
 
     #[test]
@@ -1713,17 +1753,17 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         // This round exceeds final arb limit, will be used as signal
         contract.dr_stake(bob(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("b".to_string()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("a".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
     }
 
     #[test]
@@ -1737,20 +1777,20 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("a".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string()))
         });
         // This round exceeds final arb limit, will be used as signal
         contract.dr_stake(bob(), 400, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
 
         testing_env!(get_context(alice()));
-        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer("b".to_string()));
+        contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
         let request : DataRequest = contract.data_requests.get(0).unwrap();
         assert_eq!(request.resolution_windows.len(), 2);
-        assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer("b".to_string()));
+        assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
     }
 
     #[test]
@@ -1772,7 +1812,7 @@ mod mock_token_basic_tests {
 
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{
             id: U64(0),
-            outcome: data_request::Outcome::Answer("b".to_string())
+            outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string()))
         });
 
     }
@@ -1784,7 +1824,7 @@ mod mock_token_basic_tests {
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
 
-        let outcome = data_request::Outcome::Answer("b".to_string());
+        let outcome = data_request::Outcome::Answer(AnswerType::String("b".to_string()));
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{
             id: U64(0),
             outcome
