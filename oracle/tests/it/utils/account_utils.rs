@@ -87,7 +87,7 @@ impl TestAccount {
                     challenge_period: U64(1000),
                     settlement_time: U64(10000),
                     target_contract: TARGET_CONTRACT_ID.to_string(),
-                    data_type: data_request::DataRequestDataType::String,
+                    data_type: DataRequestDataType::String
                 }
             }).to_string().as_bytes(),
             DEFAULT_GAS,
@@ -126,7 +126,7 @@ impl TestAccount {
                 "request_id": U64(dr_id)
             }).to_string().as_bytes(),
             DEFAULT_GAS,
-            900000000000000000000
+            1000000000000000000000
         );
 
         res.assert_success();
@@ -145,7 +145,7 @@ impl TestAccount {
                 "request_id": U64(dr_id)
             }).to_string().as_bytes(),
             DEFAULT_GAS,
-            900000000000000000000
+            1000000000000000000000
         );
 
         res.assert_success();

@@ -1,33 +1,18 @@
+extern crate oracle;
+
 use near_sdk::{env, near_bindgen, AccountId, Balance, Promise};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::serde::{ Deserialize, Serialize };
 use near_sdk::serde_json::json;
 use near_sdk::json_types::{U64, U128};
 use fungible_token_handler::fungible_token_transfer_call;
-
-near_sdk::setup_alloc!();
+use oracle::callback_args::NewDataRequestArgs;
 
 mod fungible_token_handler;
 
+near_sdk::setup_alloc!();
+
 pub type WrappedTimestamp = U64;
 pub type WrappedBalance = U128;
-
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
-pub struct Source {
-    pub end_point: String,
-    pub source_path: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct NewDataRequestArgs {
-    pub sources: Vec<Source>,
-    pub tags: Option<Vec<String>>,
-    pub description: Option<String>,
-    pub outcomes: Option<Vec<String>>,
-    pub challenge_period: WrappedTimestamp,
-    pub settlement_time: WrappedTimestamp,
-    pub target_contract: AccountId,
-}
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -86,6 +71,7 @@ mod tests {
     use super::*;
     use near_sdk::MockedBlockchain;
     use near_sdk::{testing_env, VMContext};
+    use oracle::data_request::DataRequestDataType;
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -157,6 +143,7 @@ mod tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
+            data_type: DataRequestDataType::String
         });
     }
 }
