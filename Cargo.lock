@@ -2426,6 +2426,7 @@ name = "request-interface"
 version = "0.1.0"
 dependencies = [
  "near-sdk",
+ "oracle",
  "serde",
 ]
 
