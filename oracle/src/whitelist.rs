@@ -34,6 +34,7 @@ impl Whitelist {
             for requestor in initial_whitelist.unwrap() {
                 // insert registry entry into whitelist
                 whitelist.insert(&requestor.contract_entry, &requestor);
+                logger::log_whitelist(&requestor, true);
             }
         }
 
@@ -46,7 +47,6 @@ impl Whitelist {
             _ => true
         }
     }
-
 }
 
 trait WhitelistHandler {
