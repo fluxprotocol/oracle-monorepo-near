@@ -170,9 +170,9 @@ pub fn log_user_stake(data_request_id: u64, round: u16, account_id: &AccountId, 
         json!({
             "type": "user_stakes",
             "action": "update",
-            "cap_id": format!("ots_{}_{}_{}", data_request_id, round, outcome_id),
+            "cap_id": format!("us_{}_{}_{}_{}", data_request_id, round, outcome_id, account_id),
             "params": {
-                "id": format!("ots_{}_{}_{}", data_request_id, round, outcome_id),
+                "id": format!("us_{}_{}_{}_{}", data_request_id, round, outcome_id, account_id),
                 "data_request_id": U64(data_request_id),
                 "round": round,
                 "outcome": outcome,
