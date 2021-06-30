@@ -456,7 +456,8 @@ impl DataRequestView for DataRequest {
 
     fn assert_can_finalize(&self) {
         assert!(!self.final_arbitrator_triggered, "Can only be finalized by final arbitrator: {}", self.request_config.final_arbitrator);
-        let last_window = self.resolution_windows.iter().last().expect("No resolution windows found, DataRequest not processed");
+        assert!(self.resolution_windows.iter().count() >= 2, "No bonded outcome found");
+        let last_window = self.resolution_windows.iter().last().unwrap();
         self.assert_not_finalized();
         assert!(env::block_timestamp() >= last_window.end_time, "Challenge period not ended");
     }
@@ -1234,7 +1235,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "No resolution windows found, DataRequest not processed")]
+    #[should_panic(expected = "No bonded outcome found")]
     fn dr_finalize_no_resolutions() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
