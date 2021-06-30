@@ -16,6 +16,7 @@ pub struct NewDataRequestArgs {
     pub settlement_time: WrappedTimestamp,
     pub target_contract: AccountId,
     pub data_type: DataRequestDataType,
+    pub creator: AccountId,
 }
 
 impl Contract {

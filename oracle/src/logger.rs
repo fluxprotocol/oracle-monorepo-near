@@ -48,6 +48,7 @@ pub fn log_new_data_request(request: &DataRequest) {
                 "date": U64(ns_to_ms(env::block_timestamp())),
                 "block_height": U64(env::block_index()),
                 "data_type": request.data_type,
+                "creator": request.creator,
             }
         })
         .to_string()

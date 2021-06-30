@@ -87,7 +87,8 @@ impl TestAccount {
                     challenge_period: U64(1000),
                     settlement_time: U64(10000),
                     target_contract: TARGET_CONTRACT_ID.to_string(),
-                    data_type: DataRequestDataType::String
+                    data_type: DataRequestDataType::String,
+                    creator: self.account.account_id(),
                 }
             }).to_string().as_bytes(),
             DEFAULT_GAS,

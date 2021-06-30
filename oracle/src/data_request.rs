@@ -184,6 +184,7 @@ pub struct DataRequest {
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
     pub requestor: AccountId, // Request Interface contract
+    pub creator: AccountId, // The account that created the request (account to return validity bond to)
     pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
@@ -268,6 +269,7 @@ impl DataRequestChange for DataRequest {
             description: request_data.description,
             tags: request_data.tags,
             data_type: request_data.data_type,
+            creator: request_data.creator,
         }
     }
 
@@ -376,7 +378,7 @@ impl DataRequestChange for DataRequest {
         let bond_to_return = self.calc_validity_bond_to_return();
 
         if bond_to_return > 0 {
-            return PromiseOrValue::Promise(fungible_token_transfer(token, self.requestor.clone(), bond_to_return))
+            return PromiseOrValue::Promise(fungible_token_transfer(token, self.creator.clone(), bond_to_return))
         }
 
         PromiseOrValue::Value(false)
@@ -806,6 +808,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -825,6 +828,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -843,6 +847,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -870,6 +875,7 @@ mod mock_token_basic_tests {
             description: None,
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -899,6 +905,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -917,6 +924,7 @@ mod mock_token_basic_tests {
             description: None,
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -936,6 +944,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -955,6 +964,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -974,6 +984,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -992,6 +1003,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
         assert_eq!(amount, 100);
     }
@@ -1011,6 +1023,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
         assert_eq!(amount, 0);
     }
@@ -1025,6 +1038,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
     }
 
@@ -1111,6 +1125,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
@@ -1839,6 +1854,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
 
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{
@@ -1884,6 +1900,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(
             data_request::AnswerType::String("a".to_string())
@@ -1915,6 +1932,7 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: None,
             data_type: data_request::DataRequestDataType::String,
+            creator: bob(),
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(
             data_request::AnswerType::String("a".to_string())
