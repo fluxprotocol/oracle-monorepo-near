@@ -29,6 +29,7 @@ pub struct NewDataRequestArgs {
     pub settlement_time: WrappedTimestamp,
     pub target_contract: AccountId,
     pub data_type: DataRequestDataType,
+    pub creator: AccountId,
 }
 
 near_sdk::setup_alloc!();
@@ -164,7 +165,8 @@ mod tests {
             target_contract: target(),
             description: Some("a".to_string()),
             tags: None,
-            data_type: DataRequestDataType::String
+            data_type: DataRequestDataType::String,
+            creator: alice(),
         });
     }
 }
