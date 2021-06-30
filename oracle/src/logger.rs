@@ -195,6 +195,21 @@ pub fn log_claim(
 ) {
     env::log(
         json!({
+            "type": "data_requests",
+            "action": "update",
+            "cap_id": format!("dr_{}", data_request_id),
+            "params": {
+                "id": U64(data_request_id),
+                "total_correct_bonded_staked": U128(total_correct_bonded_staked),
+                "total_incorrect_staked": U128(total_incorrect_staked),
+            }
+        })
+        .to_string()
+        .as_bytes()
+    );
+
+    env::log(
+        json!({
             "type": "claims",
             "action": "update",
             "cap_id": format!("c_{}_{}", account_id, data_request_id),
