@@ -315,12 +315,10 @@ impl DataRequestChange for DataRequest {
     }
 
     // @returns amount of tokens that didn't get staked
-    fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance {
+    fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance {        
         let mut window = self.resolution_windows
             .get(round as u64)
-            .unwrap_or(
-                ResolutionWindow::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp())
-            );
+            .expect("ERR_NO_RESOLUTION_WINDOW");
 
         window.unstake(sender, outcome, amount)
     }
