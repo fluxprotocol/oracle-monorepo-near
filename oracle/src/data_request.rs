@@ -751,12 +751,28 @@ impl Contract {
 
         dr.return_validity_bond(config.bond_token)
     }
-}
 
-#[near_bindgen]
-impl Contract {
-    fn dr_get_expect(&self, id: U64) -> DataRequest {
-        self.data_requests.get(id.into()).expect("DataRequest with this id does not exist")
+    pub fn dr_get_expect(&self, id: U64) -> DataRequest {
+        self.data_requests.get(id.into()).expect("ERR_DATA_REQUEST_NOT_FOUND")
+    }
+    
+    // getters
+    pub fn get_request_by_id(&self, id: U64) -> Option<DataRequest> {
+        self.data_requests.get(id.into())
+    }
+
+    pub fn get_latest_request(&self) -> Option<DataRequest> {
+        if self.data_requests.len() < 1 {
+            return None;
+        }
+        self.data_requests.get(self.data_requests.len() - 1)
+    }
+
+    pub fn get_requests(&self, from_index: U64, limit: U64) -> Vec<DataRequest> {
+        let i: u64 = from_index.into();
+        (i..std::cmp::min(i + u64::from(limit), self.data_requests.len()))
+            .map(|index| self.data_requests.get(index).unwrap())
+            .collect()
     }
 }
 
@@ -2000,5 +2016,23 @@ mod mock_token_basic_tests {
 
         let mut d = contract.data_requests.get(0).unwrap();
         assert_eq!(sum_claim_res(d.claim(alice())), 75);
+    }
+
+    #[test]
+    fn dr_get_methods() {
+        testing_env!(get_context(token()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        dr_new(&mut contract);
+        dr_new(&mut contract);
+        dr_new(&mut contract);
+        
+        assert_eq!(contract.get_latest_request().unwrap().id, 2);
+        assert_eq!(contract.get_request_by_id(U64(1)).unwrap().id, 1);
+
+        assert_eq!(contract.get_requests(U64(0), U64(1))[0].id, 0);
+        assert_eq!(contract.get_requests(U64(1), U64(1)).len(), 1);
+        assert_eq!(contract.get_requests(U64(1), U64(2)).len(), 2);
+        assert_eq!(contract.get_requests(U64(0), U64(3)).len(), 3);
     }
 }
