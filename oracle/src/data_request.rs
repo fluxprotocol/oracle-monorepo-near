@@ -819,7 +819,7 @@ impl Contract {
     }
 
     fn dr_get_expect(&self, id: U64) -> DataRequest {
-        self.data_requests.get(id.into()).expect("DataRequest with this id does not exist")
+        self.data_requests.get(id.into()).expect("ERR_DATA_REQUEST_NOT_FOUND")
     }
 
     pub fn get_request_by_id(&self, id: U64) -> Option<DataRequestSummary> {
@@ -1208,7 +1208,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "DataRequest with this id does not exist")]
+    #[should_panic(expected = "ERR_DATA_REQUEST_NOT_FOUND")]
     fn dr_stake_not_existing() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -1466,7 +1466,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "DataRequest with this id does not exist")]
+    #[should_panic(expected = "ERR_DATA_REQUEST_NOT_FOUND")]
     fn dr_unstake_invalid_id() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -1555,7 +1555,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "DataRequest with this id does not exist")]
+    #[should_panic(expected = "ERR_DATA_REQUEST_NOT_FOUND")]
     fn dr_claim_invalid_id() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
