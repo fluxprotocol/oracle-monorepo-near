@@ -47,7 +47,7 @@ pub struct CorrectStake {
     pub user_stake: Balance,
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Clone)]
 pub struct Source {
     pub end_point: String,
     pub source_path: String
@@ -414,13 +414,15 @@ pub struct ResolutionWindowSummary {
 pub struct DataRequestSummary {
     pub id: u64,
     pub description: Option<String>,
+    pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
     pub requestor: AccountId,
     pub creator: AccountId,
     pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vec<ResolutionWindowSummary>,
-    pub settlement_time: u64,
-    pub initial_challenge_period: Duration,
+    pub global_config_id: U64,
+    pub settlement_time: U64,
+    pub initial_challenge_period: U64,
     pub final_arbitrator_triggered: bool,
     pub target_contract: AccountId,
     pub tags: Option<Vec<String>>,
@@ -614,7 +616,6 @@ impl DataRequestView for DataRequest {
      */
     fn summarize_dr(&self) -> DataRequestSummary {
         // format resolution windows inside this data request
-        // let resolution_windows = Vector::new(format!("frw{}", self.id).as_bytes().to_vec());
         let mut resolution_windows = Vec::new();
         for i in self.resolution_windows.iter() {
             let rw = ResolutionWindowSummary {
@@ -631,13 +632,15 @@ impl DataRequestView for DataRequest {
         DataRequestSummary {
             id: self.id,
             description: self.description.clone(),
+            sources: self.sources.clone(),
             outcomes: self.outcomes.clone(),
             requestor: self.requestor.clone(),
             creator: self.creator.clone(),
             finalized_outcome: self.finalized_outcome.clone(),
             resolution_windows: resolution_windows,
-            settlement_time: self.settlement_time,
-            initial_challenge_period: self.initial_challenge_period,
+            global_config_id: U64(self.global_config_id),
+            settlement_time: U64(self.settlement_time),
+            initial_challenge_period: U64(self.initial_challenge_period),
             final_arbitrator_triggered: self.final_arbitrator_triggered,
             target_contract: self.target_contract.0.clone(),
             tags: self.tags.clone(),
