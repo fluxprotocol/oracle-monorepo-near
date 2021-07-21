@@ -200,7 +200,7 @@ pub struct DataRequest {
     pub target_contract: target_contract_handler::TargetContract,
     pub tags: Option<Vec<String>>,
     pub data_type: DataRequestDataType,
-    pub paid_fee: u128
+    pub paid_fee: Balance
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
@@ -401,6 +401,32 @@ impl DataRequestChange for DataRequest {
     }
 }
 
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+pub struct ResolutionWindowSummary {
+    pub round: u16,
+    pub start_time: Timestamp,
+    pub end_time: Timestamp,
+    pub bond_size: Balance,
+    pub bonded_outcome: Option<Outcome>
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+pub struct DataRequestSummary {
+    pub id: u64,
+    pub description: Option<String>,
+    pub outcomes: Option<Vec<String>>,
+    pub requestor: AccountId,
+    pub creator: AccountId,
+    pub finalized_outcome: Option<Outcome>,
+    pub resolution_windows: Vector<ResolutionWindowSummary>,
+    pub settlement_time: u64,
+    pub initial_challenge_period: Duration,
+    pub final_arbitrator_triggered: bool,
+    pub target_contract: target_contract_handler::TargetContract,
+    pub tags: Option<Vec<String>>,
+    pub paid_fee: WrappedBalance
+}
+
 trait DataRequestView {
     fn assert_valid_outcome(&self, outcome: &Outcome);
     fn assert_valid_outcome_type(&self, outcome: &Outcome);
@@ -416,6 +442,7 @@ trait DataRequestView {
     fn calc_resolution_bond(&self) -> Balance;
     fn calc_validity_bond_to_return(&self) -> Balance;
     fn calc_resolution_fee_payout(&self) -> Balance;
+    fn summarize_dr(&self) -> DataRequestSummary;
 }
 
 impl DataRequestView for DataRequest {
@@ -579,6 +606,41 @@ impl DataRequestView for DataRequest {
             self.request_config.fee
         } else {
             self.request_config.validity_bond
+        }
+    }
+
+    /**
+     * @notice Transforms a data request struct into another struct with Serde serialization
+     */
+    fn summarize_dr(&self) -> DataRequestSummary {
+        // format resolution windows inside this data request
+        let resolution_windows = Vector::new(format!("frw{}", self.id).as_bytes().to_vec());
+        for i in self.resolution_windows.iter() {
+            let rw = ResolutionWindowSummary {
+                round: i.round,
+                start_time: i.start_time,
+                end_time: i.end_time,
+                bond_size: i.bond_size,
+                bonded_outcome: i.bonded_outcome,
+            };
+            resolution_windows.push(&rw);
+        }
+
+        // format data request
+        DataRequestSummary {
+            id: self.id,
+            description: self.description,
+            outcomes: self.outcomes,
+            requestor: self.requestor,
+            creator: self.creator,
+            finalized_outcome: self.finalized_outcome,
+            resolution_windows: resolution_windows,
+            settlement_time: self.settlement_time,
+            initial_challenge_period: self.initial_challenge_period,
+            final_arbitrator_triggered: self.final_arbitrator_triggered,
+            target_contract: self.target_contract,
+            tags: self.tags,
+            paid_fee: U128(self.paid_fee)
         }
     }
 }
@@ -752,26 +814,33 @@ impl Contract {
         dr.return_validity_bond(config.bond_token)
     }
 
-    pub fn dr_get_expect(&self, id: U64) -> DataRequest {
-        self.data_requests.get(id.into()).expect("ERR_DATA_REQUEST_NOT_FOUND")
-    }
-    
-    // getters
-    pub fn get_request_by_id(&self, id: U64) -> Option<DataRequest> {
-        self.data_requests.get(id.into())
+    fn dr_get_expect(&self, id: U64) -> DataRequest {
+        self.data_requests.get(id.into()).expect("DataRequest with this id does not exist")
     }
 
-    pub fn get_latest_request(&self) -> Option<DataRequest> {
+    pub fn get_request_by_id(&self, id: U64) -> Option<DataRequestSummary> {
+        let dr = self.data_requests.get(id.into());
+        match dr {
+            None => None,
+            Some(d) => Some(d.summarize_dr())
+        }
+    }
+
+    pub fn get_latest_request(&self) -> Option<DataRequestSummary> {
         if self.data_requests.len() < 1 {
             return None;
         }
-        self.data_requests.get(self.data_requests.len() - 1)
+        let dr = self.data_requests.get(self.data_requests.len() - 1);
+        match dr {
+            None => None,
+            Some(d) => Some(d.summarize_dr())
+        }
     }
 
-    pub fn get_requests(&self, from_index: U64, limit: U64) -> Vec<DataRequest> {
+    pub fn get_requests(&self, from_index: U64, limit: U64) -> Vec<DataRequestSummary> {
         let i: u64 = from_index.into();
         (i..std::cmp::min(i + u64::from(limit), self.data_requests.len()))
-            .map(|index| self.data_requests.get(index).unwrap())
+            .map(|index| self.data_requests.get(index).unwrap().summarize_dr())
             .collect()
     }
 }
