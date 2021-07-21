@@ -418,11 +418,11 @@ pub struct DataRequestSummary {
     pub requestor: AccountId,
     pub creator: AccountId,
     pub finalized_outcome: Option<Outcome>,
-    pub resolution_windows: Vector<ResolutionWindowSummary>,
+    pub resolution_windows: Vec<ResolutionWindowSummary>,
     pub settlement_time: u64,
     pub initial_challenge_period: Duration,
     pub final_arbitrator_triggered: bool,
-    pub target_contract: target_contract_handler::TargetContract,
+    pub target_contract: AccountId,
     pub tags: Option<Vec<String>>,
     pub paid_fee: WrappedBalance
 }
@@ -614,7 +614,8 @@ impl DataRequestView for DataRequest {
      */
     fn summarize_dr(&self) -> DataRequestSummary {
         // format resolution windows inside this data request
-        let resolution_windows = Vector::new(format!("frw{}", self.id).as_bytes().to_vec());
+        // let resolution_windows = Vector::new(format!("frw{}", self.id).as_bytes().to_vec());
+        let mut resolution_windows = Vec::new();
         for i in self.resolution_windows.iter() {
             let rw = ResolutionWindowSummary {
                 round: i.round,
@@ -623,23 +624,23 @@ impl DataRequestView for DataRequest {
                 bond_size: i.bond_size,
                 bonded_outcome: i.bonded_outcome,
             };
-            resolution_windows.push(&rw);
+            resolution_windows.push(rw);
         }
 
         // format data request
         DataRequestSummary {
             id: self.id,
-            description: self.description,
-            outcomes: self.outcomes,
-            requestor: self.requestor,
-            creator: self.creator,
-            finalized_outcome: self.finalized_outcome,
+            description: self.description.clone(),
+            outcomes: self.outcomes.clone(),
+            requestor: self.requestor.clone(),
+            creator: self.creator.clone(),
+            finalized_outcome: self.finalized_outcome.clone(),
             resolution_windows: resolution_windows,
             settlement_time: self.settlement_time,
             initial_challenge_period: self.initial_challenge_period,
             final_arbitrator_triggered: self.final_arbitrator_triggered,
-            target_contract: self.target_contract,
-            tags: self.tags,
+            target_contract: self.target_contract.0.clone(),
+            tags: self.tags.clone(),
             paid_fee: U128(self.paid_fee)
         }
     }
