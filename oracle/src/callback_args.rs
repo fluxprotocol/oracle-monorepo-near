@@ -4,6 +4,7 @@ use near_sdk::serde::{ Serialize, Deserialize };
 use types::*;
 
 const MAX_SOURCES: u8 = 8;
+const MAX_TAGS: u8 = 8;
 const MIN_OUTCOMES: u8 = 2;
 const MIN_PERIOD_MULTIPLIER: u64 = 3;
 
@@ -31,6 +32,12 @@ impl Contract {
         assert!(data_request.sources.len() as u8 <= MAX_SOURCES, "Too many sources provided, max sources is: {}", MAX_SOURCES);
         assert!(challenge_period >= u64::from(min_initial_challenge_window_duration), "Challenge shorter than minimum challenge period of {}", min_initial_challenge_window_duration);
         assert!(challenge_period <= default_challenge_window_duration * MIN_PERIOD_MULTIPLIER, "Challenge period exceeds maximum challenge period of {}", default_challenge_window_duration * MIN_PERIOD_MULTIPLIER);
+        assert!(
+            data_request.tags.is_none() ||
+            data_request.tags.as_ref().unwrap().len() as u8 <= MAX_TAGS,
+            "Too many tags provided, max tags is: {}",
+            MAX_SOURCES
+        );
         assert!(
             data_request.outcomes.is_none() ||
             data_request.outcomes.as_ref().unwrap().len() as u8 <= config.max_outcomes &&
