@@ -36,7 +36,7 @@ impl Contract {
             data_request.tags.is_none() ||
             data_request.tags.as_ref().unwrap().len() as u8 <= MAX_TAGS,
             "Too many tags provided, max tags is: {}",
-            MAX_SOURCES
+            MAX_TAGS
         );
         assert!(
             data_request.outcomes.is_none() ||
