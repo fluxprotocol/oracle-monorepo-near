@@ -2,7 +2,8 @@ use near_sdk::{env, near_bindgen, AccountId, Balance, Promise};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{ Deserialize, Serialize };
 use near_sdk::serde_json::json;
-use near_sdk::json_types::{U64, U128};
+use near_sdk::json_types::{U64, U128, ValidAccountId};
+use near_sdk::collections::UnorderedSet;
 use fungible_token_handler::fungible_token_transfer_call;
 
 mod fungible_token_handler;
@@ -41,7 +42,8 @@ pub type WrappedBalance = U128;
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct RequestInterfaceContract {
     pub oracle: AccountId,
-    pub stake_token: AccountId
+    pub stake_token: AccountId,
+    pub whitelist: UnorderedSet<AccountId> // accounts allowed to call create_data_request(). if len() == 0, no whitelist (any account can make data request)
 }
 
 impl Default for RequestInterfaceContract {
@@ -55,6 +57,15 @@ impl RequestInterfaceContract {
     pub fn assert_oracle(&self) {
         assert_eq!(&env::predecessor_account_id(), &self.oracle, "ERR_INVALID_ORACLE_ADDRESS");
     }
+    // if whitelist is populated, make sure caller's account is included in it
+    pub fn assert_whitelisted(&self) {
+        if self.whitelist.len() > 0 {
+            assert!(
+                self.whitelist.contains(&env::predecessor_account_id()),
+                "ERR_NOT_WHITELISTED"
+            )
+        }
+    }
 }
 
 #[near_bindgen]
@@ -62,12 +73,23 @@ impl RequestInterfaceContract {
     #[init]
     pub fn new(
         oracle: AccountId,
-        stake_token: AccountId
+        stake_token: AccountId,
+        whitelist: Option<Vec<ValidAccountId>>,
     ) -> Self {
-        Self {
+        let mut this = Self {
             oracle,
-            stake_token
+            stake_token,
+            whitelist: UnorderedSet::new(b"".to_vec())
+        };
+
+        // populate whitelist
+        if let Some(whitelist) = whitelist {
+            for acct in whitelist {
+                this.whitelist.insert(acct.as_ref());
+            }
         }
+
+        this
     }
 
     /**
@@ -79,6 +101,7 @@ impl RequestInterfaceContract {
         amount: WrappedBalance,
         payload: NewDataRequestArgs
     ) -> Promise {
+        self.assert_whitelisted();
         fungible_token_transfer_call(
             self.stake_token.clone(),
             self.oracle.clone(),
@@ -93,6 +116,7 @@ impl RequestInterfaceContract {
 mod tests {
     use super::*;
     use near_sdk::MockedBlockchain;
+    use near_sdk::serde_json;
     use near_sdk::{testing_env, VMContext};
 
     fn alice() -> AccountId {
@@ -114,9 +138,9 @@ mod tests {
     fn get_context(input: Vec<u8>, is_view: bool) -> VMContext {
         VMContext {
             current_account_id: alice(),
-            signer_account_id: "bob_near".to_string(),
+            signer_account_id: alice(),
             signer_account_pk: vec![0, 1, 2],
-            predecessor_account_id: "carol_near".to_string(),
+            predecessor_account_id: alice(),
             input,
             block_index: 0,
             block_timestamp: 0,
@@ -139,7 +163,8 @@ mod tests {
         testing_env!(context);
         let contract = RequestInterfaceContract::new(
             oracle(),
-            token()
+            token(),
+            None,
         );
         contract.request_ft_transfer(
             token(),
@@ -150,11 +175,60 @@ mod tests {
 
     #[test]
     fn ri_create_dr_success() {
-         let context = get_context(vec![], false);
+        let context = get_context(vec![], false);
         testing_env!(context);
         let contract = RequestInterfaceContract::new(
             oracle(),
-            token()
+            token(),
+            None,
+        );
+
+        contract.create_data_request(U128(100), NewDataRequestArgs{
+            sources: Vec::new(),
+            outcomes: Some(vec!["a".to_string()].to_vec()),
+            challenge_period: U64(1500),
+            settlement_time: U64(0),
+            target_contract: target(),
+            description: Some("a".to_string()),
+            tags: None,
+            data_type: DataRequestDataType::String,
+            creator: alice(),
+        });
+    }
+
+
+    #[test]
+    fn ri_whitelisted_success() {
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let contract = RequestInterfaceContract::new(
+            oracle(),
+            token(),
+            Some(vec![serde_json::from_str("\"alice.near\"").unwrap()])
+        );
+
+        contract.create_data_request(U128(100), NewDataRequestArgs{
+            sources: Vec::new(),
+            outcomes: Some(vec!["a".to_string()].to_vec()),
+            challenge_period: U64(1500),
+            settlement_time: U64(0),
+            target_contract: target(),
+            description: Some("a".to_string()),
+            tags: None,
+            data_type: DataRequestDataType::String,
+            creator: alice(),
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_NOT_WHITELISTED")]
+    fn ri_unwhitelisted_fail() {
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let contract = RequestInterfaceContract::new(
+            oracle(),
+            token(),
+            Some(vec![serde_json::from_str("\"bob.near\"").unwrap()])
         );
 
         contract.create_data_request(U128(100), NewDataRequestArgs{
