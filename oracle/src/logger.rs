@@ -87,7 +87,7 @@ pub fn log_oracle_config(config: &OracleConfig, id: u64) {
                 "gov": config.gov,
                 "final_arbitrator": config.final_arbitrator,
                 "stake_token": config.stake_token,
-                "bond_token": config.bond_token,
+                "payment_token": config.payment_token,
                 "validity_bond": config.validity_bond,
                 "max_outcomes": config.max_outcomes,
                 "default_challenge_window_duration": config.default_challenge_window_duration,

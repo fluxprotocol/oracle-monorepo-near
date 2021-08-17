@@ -186,7 +186,7 @@ mod mock_token_basic_tests {
         oracle_config::OracleConfig {
             gov: gov(),
             final_arbitrator: alice(),
-            bond_token: token(),
+            payment_token: token(),
             stake_token: token(),
             validity_bond: U128(100),
             max_outcomes: 8,

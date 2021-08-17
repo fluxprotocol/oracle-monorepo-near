@@ -244,17 +244,17 @@ impl DataRequestChange for DataRequest {
             _ => helpers::calc_product(user_correct_stake, total_incorrect_staked, total_correct_staked)
         };
 
-        let bond_token_payout = self.calc_resolution_fee_payout();
+        let payment_token_payout = self.calc_resolution_fee_payout();
 
         let fee_bond_profit = match total_correct_staked {
             0 => 0,
-            _ => helpers::calc_product(user_correct_stake, bond_token_payout, total_correct_staked)
+            _ => helpers::calc_product(user_correct_stake, payment_token_payout, total_correct_staked)
         };
 
         logger::log_claim(&account_id, self.id, total_correct_staked, total_incorrect_staked, user_correct_stake, stake_profit);
 
         ClaimRes {
-            bond_token_payout: fee_bond_profit,
+            payment_token_payout: fee_bond_profit,
             stake_token_payout: user_correct_stake + stake_profit
         }
     }
@@ -428,8 +428,8 @@ impl DataRequestView for DataRequest {
     }
 
      /**
-     * @notice Calculates, how much of, the `validity_bond` should be returned to the creator, if the fees accrued are less than the validity bond only return the fees accrued to the creator
-     * the rest of the bond will be paid out to resolvers. If the `DataRequest` is invalid the fees and the `validity_bond` are paid out to resolvers, the creator gets slashed.
+     * @notice Calculates, how much of, the `validity_bond` should be returned to the creator, if the fees accrued are less than the validity bond, only return the fees accrued to the creator.
+     * The rest of the bond will be paid out to resolvers. If the `DataRequest` is invalid the fees and the `validity_bond` are paid out to resolvers, the creator gets slashed.
      * @returns How much of the `validity_bond` should be returned to the creator after resolution denominated in `stake_token`
      */
     fn calc_validity_bond_to_return(&self) -> Balance {
@@ -512,7 +512,7 @@ impl Contract {
         let config = self.get_config();
         let validity_bond: u128 = config.validity_bond.into();
         self.assert_whitelisted(sender.to_string());
-        self.assert_sender(&config.bond_token);
+        self.assert_sender(&config.payment_token);
         self.dr_validate(&payload);
         assert!(amount >=validity_bond, "Validity bond not reached");
 
@@ -599,11 +599,11 @@ impl Contract {
             None
         };
         
-        if stake_payout.bond_token_payout > 0 {
+        if stake_payout.payment_token_payout > 0 {
             // distribute fee + bond
             match prev_prom {
-                Some(p) => p.then(fungible_token_transfer(config.bond_token, account_id, stake_payout.bond_token_payout)),
-                None => fungible_token_transfer(config.bond_token, account_id, stake_payout.bond_token_payout)
+                Some(p) => p.then(fungible_token_transfer(config.payment_token, account_id, stake_payout.payment_token_payout)),
+                None => fungible_token_transfer(config.payment_token, account_id, stake_payout.payment_token_payout)
             }
         } else {
             match prev_prom {
@@ -626,7 +626,7 @@ impl Contract {
     pub fn set_claimed_fee(&mut self, amount: u128, sender: AccountId, dr_id: u64) -> PromiseOrValue<U128> {
         let mut dr = self.dr_get_expect(dr_id.into());
         let config = self.configs.get(dr.global_config_id).unwrap();
-        self.assert_sender(&config.bond_token);
+        self.assert_sender(&config.payment_token);
         assert_eq!(sender, dr.target_contract.0, "Can only be called by the target contract");
         dr.assert_can_claim_fee();
 
@@ -663,7 +663,7 @@ impl Contract {
 
         dr.finalize();
 
-        dr.return_validity_bond(config.bond_token);
+        dr.return_validity_bond(config.payment_token);
 
         self.data_requests.replace(request_id.into(), &dr);
 
@@ -688,7 +688,7 @@ impl Contract {
         logger::log_update_data_request(&dr);
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
 
-        dr.return_validity_bond(config.bond_token)
+        dr.return_validity_bond(config.payment_token)
     }
 
     fn dr_get_expect(&self, id: U64) -> DataRequest {
@@ -761,7 +761,7 @@ mod mock_token_basic_tests {
     }
 
     fn sum_claim_res(claim_res: ClaimRes) -> u128 {
-        claim_res.bond_token_payout + claim_res.stake_token_payout
+        claim_res.payment_token_payout + claim_res.stake_token_payout
     }
 
     fn registry_entry(account: AccountId) -> RegistryEntry {
@@ -784,7 +784,7 @@ mod mock_token_basic_tests {
         oracle_config::OracleConfig {
             gov: gov(),
             final_arbitrator: alice(),
-            bond_token: token(),
+            payment_token: token(),
             stake_token: token(),
             validity_bond: U128(100),
             max_outcomes: 8,
@@ -862,7 +862,7 @@ mod mock_token_basic_tests {
 
     #[test]
     #[should_panic(expected = "This function can only be called by token.near")]
-    fn dr_new_non_bond_token() {
+    fn dr_new_non_payment_token() {
         testing_env!(get_context(alice()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());

@@ -26,7 +26,7 @@ impl OracleUtils {
         let config = OracleConfig {
             gov: "alice".to_string(),
             final_arbitrator: "alice".to_string(),
-            bond_token: TOKEN_CONTRACT_ID.to_string(),
+            payment_token: TOKEN_CONTRACT_ID.to_string(),
             stake_token: TOKEN_CONTRACT_ID.to_string(),
             validity_bond: U128(validity_bond),
             max_outcomes: 8,

@@ -9,7 +9,7 @@ pub type Duration = u64;
 pub type WrappedBalance = U128;
 
 pub struct ClaimRes {
-    pub bond_token_payout: u128,
+    pub payment_token_payout: u128,
     pub stake_token_payout: u128
 }
 

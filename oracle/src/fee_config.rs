@@ -5,9 +5,9 @@ const MAX_RESOLUTION_FEE_PERCENTAGE: u32 = 5000; // 5% in 1e5
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct FeeConfig {
-    // total market cap of FLUX/stake_token denominated in bond_token
+    // total market cap of FLUX/stake_token denominated in payment_token
     pub flux_market_cap: U128,
-    // total value staked (TVS) of all request interfaces; denominated in bond_token
+    // total value staked (TVS) of all request interfaces; denominated in payment_token
     pub total_value_staked: U128,
     // global percentage of TVS to pay out to resolutors; denominated in 1e5 so 1 = 0.001%, 100000 = 100%
     pub resolution_fee_percentage: u32,
@@ -72,7 +72,7 @@ mod mock_token_basic_tests {
         oracle_config::OracleConfig {
             gov,
             final_arbitrator: alice(),
-            bond_token: token(),
+            payment_token: token(),
             stake_token: token(),
             validity_bond: U128(0),
             max_outcomes: 8,
