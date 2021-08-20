@@ -1,0 +1,1 @@
+NEAR_ENV=$1 near deploy --accountId $2 --wasmFile ./res/target_contract.wasm --initFunction new --initArgs '{"oracle": "'$3'", "fee_token": "v2.wnear.flux-dev", "requestor": "'$4'"}'
