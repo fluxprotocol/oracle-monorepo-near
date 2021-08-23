@@ -217,6 +217,14 @@ mod mock_token_basic_tests {
     }
 
     #[test]
+    fn whitelist_assert_passes_when_empty() {
+        testing_env!(get_context(gov()));
+        let whitelist = None;
+        let contract = Contract::new(whitelist, config());
+        contract.assert_whitelisted(alice());
+    }
+
+    #[test]
     #[should_panic(expected = "This method is only callable by the governance contract gov.near")]
     fn only_gov_can_add() {
         testing_env!(get_context(alice()));
