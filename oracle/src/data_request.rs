@@ -26,7 +26,7 @@ pub struct Source {
     pub source_path: String // data.price.usdeth
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub enum DataRequestDataType {
     Number(U128),
     String,
@@ -66,6 +66,7 @@ pub struct DataRequestSummary {
     pub final_arbitrator_triggered: bool,
     pub target_contract: AccountId,
     pub tags: Option<Vec<String>>,
+    pub data_type: DataRequestDataType,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -410,6 +411,7 @@ impl DataRequestView for DataRequest {
             final_arbitrator_triggered: self.final_arbitrator_triggered,
             target_contract: self.target_contract.0.clone(),
             tags: self.tags.clone(),
+            data_type: self.data_type.clone(),
         }
     }
 }
