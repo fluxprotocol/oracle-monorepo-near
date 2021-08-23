@@ -366,7 +366,6 @@ fn dr_scenario_multiplier() {
     
     // println!("Bob balance before staking:   {}", init_balance_bob); // same for carol
     
-    // TODO: check for refunds
     for i in 0..7 {
         let bond_size = calc_bond_size(validity_bond, i, Some(multiplier)); // stake 2, 4, 16, 33, ...
         // even numbers => Bob stakes on correct outcome
@@ -386,7 +385,6 @@ fn dr_scenario_multiplier() {
     }
     
     // get balances before finalization and claim and amount spent on staking
-    // TODO: account for final_arbitrator_invoke_amount and assert calculation
     let pre_claim_balance_bob = init_res.bob.get_token_balance(None);
     let pre_claim_balance_carol = init_res.carol.get_token_balance(None);
     let pre_claim_difference_bob = init_balance_bob - pre_claim_balance_bob;
@@ -446,7 +444,6 @@ fn dr_scenario_fixed_fee() {
 
     println!("Request interface before staking: {}", init_res.alice.get_token_balance(Some(REQUEST_INTERFACE_CONTRACT_ID.to_string())));
     
-    // TODO: check for refunds
     for i in 0..7 {
         let bond_size = calc_bond_size(validity_bond, i, None); // stake 2, 4, 16, 33, ...
         // even numbers => Bob stakes on correct outcome

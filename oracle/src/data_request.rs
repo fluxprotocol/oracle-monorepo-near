@@ -43,8 +43,8 @@ pub struct DataRequest {
     pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
-    pub request_config: DataRequestConfig, // TODO: why seperate config?
-    pub initial_challenge_period: Duration, // TODO: overlap with default challenge window duration?
+    pub request_config: DataRequestConfig, // Config enforced by global parameters
+    pub initial_challenge_period: Duration, // challenge period for first resolution
     pub final_arbitrator_triggered: bool,
     pub target_contract: target_contract_handler::TargetContract,
     pub tags: Option<Vec<String>>,
