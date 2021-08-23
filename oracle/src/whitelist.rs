@@ -22,13 +22,16 @@ impl Whitelist {
     pub fn new(initial_whitelist: Option<Vec<RegistryEntry>>) -> Self {
         let mut whitelist: LookupMap<AccountId, RegistryEntry> = LookupMap::new(b"wlr".to_vec());
 
-        if initial_whitelist.is_some() {
-            for requestor in initial_whitelist.unwrap() {
+        match initial_whitelist {
+            Some(initial_whitelist) => {
                 // insert registry entry into whitelist
-                whitelist.insert(&requestor.contract_entry, &requestor);
-                logger::log_whitelist(&requestor, true);
-            }
-        }
+                for requestor in initial_whitelist {
+                    whitelist.insert(&requestor.contract_entry, &requestor);
+                    logger::log_whitelist(&requestor, true);
+                }
+            }, 
+            None => ()
+        };
 
         Self(whitelist)
     }
