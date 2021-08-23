@@ -1,12 +1,10 @@
-use near_sdk::{env, near_bindgen, AccountId, ext_contract, Gas, Promise};
+use near_sdk::{env, near_bindgen, AccountId, ext_contract};
 use near_sdk::json_types::{U64, U128};
 use near_sdk::collections::LookupMap;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::serde_json::json;
 use near_sdk::serde::{ Deserialize, Serialize };
 
 near_sdk::setup_alloc!();
-const GAS_BASE_SET_OUTCOME: Gas = 200_000_000_000_000;
 pub const PERCENTAGE_DIVISOR: u16 = 10_000;
 
 #[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
