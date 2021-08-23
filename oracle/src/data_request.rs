@@ -233,7 +233,7 @@ impl DataRequestChange for DataRequest {
             _ => helpers::calc_product(user_correct_stake, self.request_config.paid_fee, total_correct_staked)
         };
 
-        logger::log_claim(&account_id, self.id, total_correct_staked, total_incorrect_staked, user_correct_stake, stake_profit);
+        logger::log_claim(&account_id, self.id, total_correct_staked, total_incorrect_staked, user_correct_stake, stake_profit, fee_profit);
 
         ClaimRes {
             payment_token_payout: fee_profit,
@@ -384,9 +384,9 @@ impl DataRequestView for DataRequest {
         for i in self.resolution_windows.iter() {
             let rw = ResolutionWindowSummary {
                 round: i.round,
-                start_time: i.start_time,
-                end_time: i.end_time,
-                bond_size: i.bond_size,
+                start_time: U64(i.start_time),
+                end_time: U64(i.end_time),
+                bond_size: U128(i.bond_size),
                 bonded_outcome: i.bonded_outcome,
             };
             resolution_windows.push(rw);

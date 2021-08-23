@@ -187,14 +187,14 @@ pub fn log_user_stake(data_request_id: u64, round: u16, account_id: &AccountId, 
     );
 }
 
-//TODO: add bond / fee token earned
 pub fn log_claim(
     account_id: &AccountId, 
     data_request_id: u64, 
     total_correct_bonded_staked: u128, 
     total_incorrect_staked: u128, 
     user_correct_stake: u128, 
-    payout: u128
+    stake_profit: u128,
+    fee_profit: u128,
 ) {
     env::log(
         json!({
@@ -223,7 +223,8 @@ pub fn log_claim(
                 "total_correct_bonded_staked": U128(total_correct_bonded_staked),
                 "total_incorrect_staked": U128(total_incorrect_staked),
                 "user_correct_stake": U128(user_correct_stake),
-                "payout": U128(payout),
+                "payout": U128(stake_profit),
+                "fee_profit": U128(fee_profit),
                 "date": U64(ns_to_ms(env::block_timestamp())),
                 "block_height": U64(env::block_index()),
             }
