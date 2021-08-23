@@ -82,7 +82,7 @@ mod mock_token_basic_tests {
     fn registry_entry(account: AccountId) -> RequestorConfig {
         RequestorConfig {
             interface_name: account.clone(),
-            contract_entry: account.clone(),
+            account_id: account.clone(),
             stake_multiplier: None,
             code_base_url: None
         }

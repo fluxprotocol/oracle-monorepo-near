@@ -38,8 +38,8 @@ pub struct DataRequest {
     pub description: Option<String>,
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
-    pub requestor: AccountId, // Request Interface contract
-    pub creator: AccountId, // TODO: should be removable The account that created the request (account to return validity bond to)
+    pub requestor: AccountId, // Requestor contract
+    pub creator: AccountId, // Account to return the validity bond to
     pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
@@ -307,7 +307,6 @@ impl DataRequestView for DataRequest {
     fn assert_can_stake_on_outcome(&self, outcome: &Outcome) {
         if self.resolution_windows.len() > 1 {
             let last_window = self.resolution_windows.get(self.resolution_windows.len() - 2).unwrap();
-            // TODO, currently checking references are equal. In my experience checking values is safer.
             assert_ne!(&last_window.bonded_outcome.unwrap(), outcome, "Outcome is incompatible for this round");
         }
     }
@@ -359,8 +358,6 @@ impl DataRequestView for DataRequest {
         last_bonded_window.bonded_outcome
     }
 
-
-    // TODO: decide on validity bonds for FixedFee DRs 
     /**
      * @notice Calculates the size of the resolution bond. If the accumulated fee is smaller than the validity bond, we payout the validity bond to validators, thus they have to stake double in order to be
      * eligible for the reward, in the case that the fee is greater than the validity bond validators need to have a cumulative stake of double the fee amount
@@ -648,7 +645,7 @@ mod mock_token_basic_tests {
     fn registry_entry(account: AccountId) -> RequestorConfig {
         RequestorConfig {
             interface_name: account.clone(),
-            contract_entry: account.clone(),
+            account_id: account.clone(),
             stake_multiplier: None,
             code_base_url: None
         }
@@ -1269,7 +1266,7 @@ mod mock_token_basic_tests {
         });
 
         testing_env!(get_context(alice()));
-        // TODO stake_token.balances should change?
+
         // verify initial storage
         assert_eq!(contract.
             data_requests.get(0).unwrap().
@@ -1537,8 +1534,7 @@ mod mock_token_basic_tests {
         contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
         let mut d = contract.data_requests.get(0).unwrap();
-        // TODO should be 500, validity bond (100) + last round (400)
-        // assert_eq!(sum_claim_res(d.claim(alice())), 100);
+        assert_eq!(sum_claim_res(d.claim(alice())), 600);
         assert_eq!(sum_claim_res(d.claim(bob())), 0);
     }
 
@@ -1746,7 +1742,7 @@ mod mock_token_basic_tests {
         testing_env!(get_context(token()));
         let bob_requestor = RequestorConfig {
             interface_name: bob(),
-            contract_entry: bob(),
+            account_id: bob(),
             stake_multiplier: None,
             code_base_url: None,
         };

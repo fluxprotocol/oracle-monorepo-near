@@ -238,11 +238,11 @@ pub fn log_whitelist(requestor: &RequestorConfig, active: bool) {
         json!({
             "type": "whitelist",
             "action": "update",
-            "cap_id": format!("wl_{}", requestor.contract_entry),
+            "cap_id": format!("wl_{}", requestor.account_id),
             "params": {
-                "id": format!("wl_{}", requestor.contract_entry),
+                "id": format!("wl_{}", requestor.account_id),
                 "interface_name": requestor.interface_name,
-                "contract_entry": requestor.contract_entry,
+                "account_id": requestor.account_id,
                 "stake_multiplier": requestor.stake_multiplier,
                 "code_base_url": requestor.code_base_url,
                 "active": active,

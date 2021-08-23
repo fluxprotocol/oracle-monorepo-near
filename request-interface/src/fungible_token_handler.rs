@@ -4,7 +4,6 @@ use near_sdk::{
     AccountId,
     Gas,
     Promise,
-    PromiseOrValue,
     json_types::U128,
     ext_contract,
 };

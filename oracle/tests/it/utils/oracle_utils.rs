@@ -10,7 +10,7 @@ pub struct OracleUtils {
 fn new_registry_entry(contract_id: String, stake_multiplier: Option<u16>) -> RequestorConfig {
     RequestorConfig {
         code_base_url: None,
-        contract_entry: contract_id,
+        account_id: contract_id,
         interface_name: "test".to_string(),
         stake_multiplier
     }
