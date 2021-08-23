@@ -79,8 +79,8 @@ mod mock_token_basic_tests {
         account.try_into().expect("invalid account")
     }
 
-    fn registry_entry(account: AccountId) -> RegistryEntry {
-        RegistryEntry {
+    fn registry_entry(account: AccountId) -> RequestorConfig {
+        RequestorConfig {
             interface_name: account.clone(),
             contract_entry: account.clone(),
             stake_multiplier: None,

@@ -608,7 +608,7 @@ impl Contract {
 mod mock_token_basic_tests {
     use near_sdk::{ MockedBlockchain };
     use near_sdk::{ testing_env, VMContext };
-    use crate::whitelist::{RegistryEntry};
+    use crate::whitelist::{RequestorConfig};
     use crate::data_request::AnswerType;
     use super::*;
     use fee_config::FeeConfig;
@@ -645,8 +645,8 @@ mod mock_token_basic_tests {
         claim_res.payment_token_payout + claim_res.stake_token_payout
     }
 
-    fn registry_entry(account: AccountId) -> RegistryEntry {
-        RegistryEntry {
+    fn registry_entry(account: AccountId) -> RequestorConfig {
+        RequestorConfig {
             interface_name: account.clone(),
             contract_entry: account.clone(),
             stake_multiplier: None,
@@ -1744,7 +1744,7 @@ mod mock_token_basic_tests {
     #[test]
     fn dr_fixed_fee() {
         testing_env!(get_context(token()));
-        let bob_requestor = RegistryEntry {
+        let bob_requestor = RequestorConfig {
             interface_name: bob(),
             contract_entry: bob(),
             stake_multiplier: None,

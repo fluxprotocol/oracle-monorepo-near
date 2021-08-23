@@ -30,7 +30,7 @@ pub use callback_args::*;
 use types::*;
 pub use data_request::{ DataRequest, Source };
 use storage_manager::AccountStorageBalance;
-use whitelist::RegistryEntry;
+use whitelist::RequestorConfig;
 
 #[near_bindgen]
 #[derive(BorshSerialize, BorshDeserialize )]
@@ -51,7 +51,7 @@ impl Default for Contract {
 impl Contract {
     #[init]
     pub fn new(
-        initial_whitelist: Option<Vec<RegistryEntry>>,
+        initial_whitelist: Option<Vec<RequestorConfig>>,
         config: oracle_config::OracleConfig,
     ) -> Self {
         let mut configs = Vector::new(b"c".to_vec());

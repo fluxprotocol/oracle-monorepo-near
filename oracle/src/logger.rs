@@ -13,7 +13,7 @@ use crate::{
     types::*,
     data_request::DataRequest,
     resolution_window::ResolutionWindow,
-    whitelist::RegistryEntry,
+    whitelist::RequestorConfig,
     oracle_config::{
         OracleConfig
     },
@@ -233,7 +233,7 @@ pub fn log_claim(
     );
 }
 
-pub fn log_whitelist(requestor: &RegistryEntry, active: bool) {
+pub fn log_whitelist(requestor: &RequestorConfig, active: bool) {
     env::log(
         json!({
             "type": "whitelist",
