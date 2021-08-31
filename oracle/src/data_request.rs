@@ -50,6 +50,16 @@ pub struct DataRequest {
     pub data_type: DataRequestDataType,
 }
 
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct DataRequestConfig {
+    default_challenge_window_duration: Duration,
+    final_arbitrator_invoke_amount: Balance,
+    final_arbitrator: AccountId,
+    validity_bond: Balance,
+    pub paid_fee: Balance,
+    pub stake_multiplier: Option<u16>,
+}
+
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
 pub struct DataRequestSummary {
     pub id: u64,
@@ -57,6 +67,7 @@ pub struct DataRequestSummary {
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
     pub requestor: Requestor,
+    pub request_config: DataRequestConfigSummary,
     pub creator: AccountId,
     pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vec<ResolutionWindowSummary>,
@@ -67,13 +78,10 @@ pub struct DataRequestSummary {
     pub data_type: DataRequestDataType,
 }
 
-#[derive(BorshSerialize, BorshDeserialize)]
-pub struct DataRequestConfig {
-    default_challenge_window_duration: Duration,
-    final_arbitrator_invoke_amount: Balance,
-    final_arbitrator: AccountId,
-    validity_bond: Balance,
-    pub paid_fee: Balance,
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+pub struct DataRequestConfigSummary {
+    pub validity_bond: WrappedBalance,
+    pub paid_fee: WrappedBalance,
     pub stake_multiplier: Option<u16>,
 }
 
@@ -400,6 +408,11 @@ impl DataRequestView for DataRequest {
             final_arbitrator_triggered: self.final_arbitrator_triggered,
             tags: self.tags.clone(),
             data_type: self.data_type.clone(),
+            request_config: DataRequestConfigSummary {
+                validity_bond: U128(self.request_config.validity_bond),
+                paid_fee: U128(self.request_config.paid_fee),
+                stake_multiplier: self.request_config.stake_multiplier,
+            }
         }
     }
 }
