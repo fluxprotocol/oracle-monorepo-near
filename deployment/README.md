@@ -15,7 +15,7 @@ The default parameters of `deploy_oracle.sh` are listed inside the script; chang
 ```bash
 bash deployment/deploy_oracle.sh --accountId $ORACLE --gov $ACCOUNT
 
-bash deployment/deploy_requestor.sh --accountId $REQUESTOR
+bash deployment/deploy_requestor.sh --accountId $REQUESTOR --oracle $ORACLE
 ```
 
 ## Reset account
