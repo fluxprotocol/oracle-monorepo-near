@@ -1,4 +1,4 @@
-use near_sdk::{env, near_bindgen, AccountId, Balance, Promise, ext_contract};
+use near_sdk::{env, log, near_bindgen, AccountId, Balance, Promise, ext_contract};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{ Deserialize, Serialize };
 use near_sdk::serde_json::json;
@@ -8,7 +8,7 @@ use fungible_token_handler::fungible_token_transfer_call;
 
 mod fungible_token_handler;
 
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Clone)]
 pub struct Source {
     pub end_point: String,
     pub source_path: String
@@ -27,7 +27,6 @@ pub enum DataRequestDataType {
     String,
 }
 
-
 #[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub struct AnswerNumberType {
     pub value: U128,
@@ -41,21 +40,27 @@ pub enum Outcome {
     Invalid
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq, Clone)]
-pub enum DataRequestStatus {
+#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq, Clone, Deserialize, Serialize)]
+pub enum DataResponseStatus {
     Pending,
     Finalized(Outcome)
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize)]
 pub struct DataRequest {
-    status: DataRequestStatus,
-    tags: Option<Vec<String>>
+    amount: WrappedBalance,
+    payload: NewDataRequestArgs
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq, Clone, Deserialize, Serialize)]
+pub struct DataResponse {
+    status: DataResponseStatus,
+    tags: Vec<String>
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 pub struct NewDataRequestArgs {
-    pub sources: Vec<Source>,
+    pub sources: Option<Vec<Source>>,
     pub tags: Option<Vec<String>>,
     pub description: Option<String>,
     pub outcomes: Option<Vec<String>>,
@@ -79,7 +84,9 @@ pub type WrappedBalance = U128;
 pub struct RequestorContract {
     pub oracle: AccountId,
     pub stake_token: AccountId,
-    pub data_requests: LookupMap<U64, DataRequest>,
+    pub nonce: u64,
+    pub data_requests: LookupMap<u64, DataRequest>,
+    pub data_responses: LookupMap<u64, DataResponse>,
     pub whitelist: UnorderedSet<AccountId> // accounts allowed to call create_data_request(). if len() == 0, no whitelist (any account can make data request)
 }
 
@@ -103,6 +110,11 @@ impl RequestorContract {
             )
         }
     }
+
+    fn get_nonce(&mut self) -> u64 {
+        self.nonce += 1;
+        self.nonce
+    }   
 }
 
 #[near_bindgen]
@@ -116,8 +128,10 @@ impl RequestorContract {
         let mut requestor_instance = Self {
             oracle,
             stake_token,
-            data_requests: LookupMap::new(b"drs".to_vec()),
-            whitelist: UnorderedSet::new(b"".to_vec())
+            nonce: 0,
+            data_requests: LookupMap::new(b"drq".to_vec()),
+            data_responses: LookupMap::new(b"drs".to_vec()),
+            whitelist: UnorderedSet::new(b"w".to_vec())
         };
 
         // populate whitelist
@@ -130,16 +144,26 @@ impl RequestorContract {
         requestor_instance
     }
 
-    /**
-     * @notice creates a new data request on the oracle (must be whitelisted on oracle first)
-     * @returns ID of data request
-     */
+    #[payable]
     pub fn create_data_request(
-        &self,
+        &mut self,
         amount: WrappedBalance,
-        payload: NewDataRequestArgs
+        mut payload: NewDataRequestArgs
     ) -> Promise {
         self.assert_whitelisted();
+        let nonce = self.get_nonce();
+
+        // insert nonce into tags
+        let mut tags = payload.tags.unwrap_or(vec![]);
+        tags.push(nonce.to_string());
+        payload.tags = Some(tags);
+
+        let dr = DataRequest{
+            amount,
+            payload: payload.clone()
+        };
+        self.data_requests.insert(&nonce, &dr);
+        log!("storing data request under {}", nonce);
         fungible_token_transfer_call(
             self.stake_token.clone(),
             self.oracle.clone(),
@@ -154,29 +178,25 @@ impl RequestorContract {
     #[payable]
     pub fn set_outcome(
         &mut self,
-        request_id: U64,
         requestor: AccountId,
         outcome: Outcome,
-        tags: Option<Vec<String>>,
+        tags: Vec<String>,
     ) {
         self.assert_oracle();
         assert_eq!(env::current_account_id(), requestor, "can only set outcomes for requests that are initiated by this requestor");
         assert_eq!(env::attached_deposit(), 1);
 
         // insert finalized data request outcome into this contract
-        let result = DataRequest {
-            status: DataRequestStatus::Finalized(outcome),
-            tags
+        let result = DataResponse {
+            status: DataResponseStatus::Finalized(outcome),
+            tags: tags.clone()
         };
-        self.data_requests.insert(
-            &request_id,
+        self.data_responses.insert(
+            &tags.last().unwrap().parse::<u64>().unwrap(),
             &result
         );
     }
     
-    /**
-     * @notice called by oracle to finalize the outcome result of a data request
-     */
     #[payable]
     pub fn get_outcome(
         &mut self,
@@ -188,6 +208,14 @@ impl RequestorContract {
             0,
             1_000_000_000_000
         )
+    }
+
+    pub fn get_data_request(&self, nonce: U64) -> Option<DataRequest> {
+        self.data_requests.get(&u64::from(nonce))
+    }
+
+    pub fn get_data_response(&self, nonce: U64) -> Option<DataResponse> {
+        self.data_responses.get(&u64::from(nonce))
     }
 }
 
@@ -237,7 +265,7 @@ mod tests {
     fn ri_not_oracle() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let contract = RequestorContract::new(
+        let mut contract = RequestorContract::new(
             oracle(),
             token(),
             None,
@@ -253,18 +281,18 @@ mod tests {
     fn ri_create_dr_success() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let contract = RequestorContract::new(
+        let mut contract = RequestorContract::new(
             oracle(),
             token(),
             None,
         );
 
         contract.create_data_request(U128(100), NewDataRequestArgs{
-            sources: Vec::new(),
+            sources: Some(Vec::new()),
             outcomes: Some(vec!["a".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: Some(Vec::new()),
             data_type: DataRequestDataType::String,
             creator: alice(),
         });
@@ -275,18 +303,18 @@ mod tests {
     fn ri_whitelisted_success() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let contract = RequestorContract::new(
+        let mut contract = RequestorContract::new(
             oracle(),
             token(),
             Some(vec![serde_json::from_str("\"alice.near\"").unwrap()])
         );
 
         contract.create_data_request(U128(100), NewDataRequestArgs{
-            sources: Vec::new(),
+            sources: Some(Vec::new()),
             outcomes: Some(vec!["a".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: Some(Vec::new()),
             data_type: DataRequestDataType::String,
             creator: alice(),
         });
@@ -297,20 +325,99 @@ mod tests {
     fn ri_unwhitelisted_fail() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let contract = RequestorContract::new(
+        let mut contract = RequestorContract::new(
             oracle(),
             token(),
             Some(vec![serde_json::from_str("\"bob.near\"").unwrap()])
         );
 
         contract.create_data_request(U128(100), NewDataRequestArgs{
-            sources: Vec::new(),
+            sources: Some(Vec::new()),
             outcomes: Some(vec!["a".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: Some(Vec::new()),
             data_type: DataRequestDataType::String,
             creator: alice(),
         });
+    }
+
+    #[test]
+    fn ri_empty_tags_nonce_works() {
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let mut contract = RequestorContract::new(
+            oracle(),
+            token(),
+            Some(vec![serde_json::from_str("\"alice.near\"").unwrap()])
+        );
+
+        contract.create_data_request(U128(100), NewDataRequestArgs{
+            sources: Some(Vec::new()),
+            outcomes: Some(vec!["a".to_string()].to_vec()),
+            challenge_period: U64(1500),
+            description: Some("a".to_string()),
+            tags: Some(Vec::new()),
+            data_type: DataRequestDataType::String,
+            creator: alice(),
+        });
+
+        assert!(contract.data_requests.get(&1).is_some());
+    }
+
+    #[test]
+    fn ri_some_tags_nonce_works() {
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let mut contract = RequestorContract::new(
+            oracle(),
+            token(),
+            Some(vec![serde_json::from_str("\"alice.near\"").unwrap()])
+        );
+
+        contract.create_data_request(U128(100), NewDataRequestArgs{
+            sources: Some(Vec::new()),
+            outcomes: Some(vec!["a".to_string()].to_vec()),
+            challenge_period: U64(1500),
+            description: Some("a".to_string()),
+            tags: Some(vec!["butt".to_owned(),"on".to_owned()]),
+            data_type: DataRequestDataType::String,
+            creator: alice(),
+        });
+
+        assert!(contract.data_requests.get(&1).is_some());
+    }
+
+    #[test]
+    fn ri_nonce_iterates_properly() {
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let mut contract = RequestorContract::new(
+            oracle(),
+            token(),
+            Some(vec![serde_json::from_str("\"alice.near\"").unwrap()])
+        );
+
+        contract.create_data_request(U128(100), NewDataRequestArgs{
+            sources: Some(Vec::new()),
+            outcomes: Some(vec!["a".to_string()].to_vec()),
+            challenge_period: U64(1500),
+            description: Some("a".to_string()),
+            tags: Some(Vec::new()),
+            data_type: DataRequestDataType::String,
+            creator: alice(),
+        });
+
+        contract.create_data_request(U128(100), NewDataRequestArgs{
+            sources: Some(Vec::new()),
+            outcomes: Some(vec!["a".to_string()].to_vec()),
+            challenge_period: U64(1500),
+            description: Some("a".to_string()),
+            tags: Some(Vec::new()),
+            data_type: DataRequestDataType::String,
+            creator: alice(),
+        });
+
+        assert!(contract.data_requests.get(&2).is_some());
     }
 }
