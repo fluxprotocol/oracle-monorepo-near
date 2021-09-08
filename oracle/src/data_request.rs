@@ -46,7 +46,7 @@ pub struct DataRequest {
     pub request_config: DataRequestConfig, // Config enforced by global parameters
     pub initial_challenge_period: Duration, // challenge period for first resolution
     pub final_arbitrator_triggered: bool,
-    pub tags: Option<Vec<String>>,
+    pub tags: Vec<String>,
     pub data_type: DataRequestDataType,
 }
 
@@ -74,7 +74,7 @@ pub struct DataRequestSummary {
     pub global_config_id: U64,
     pub initial_challenge_period: U64,
     pub final_arbitrator_triggered: bool,
-    pub tags: Option<Vec<String>>,
+    pub tags: Vec<String>,
     pub data_type: DataRequestDataType,
 }
 
@@ -529,7 +529,7 @@ impl Contract {
         dr.assert_can_finalize();
         let final_outcome = dr.get_final_outcome();
         
-        dr.requestor.set_outcome(request_id, final_outcome.unwrap(), dr.tags.clone(), false);
+        dr.requestor.set_outcome(final_outcome.unwrap(), dr.tags.clone(), false);
 
         let config = self.configs.get(dr.global_config_id).unwrap();
 
@@ -553,7 +553,7 @@ impl Contract {
         dr.finalize_final_arbitrator(outcome.clone());
 
         let config = self.configs.get(dr.global_config_id).unwrap();
-        dr.requestor.set_outcome(request_id, outcome, dr.tags.clone(), true);
+        dr.requestor.set_outcome(outcome, dr.tags.clone(), true);
         self.data_requests.replace(request_id.into(), &dr);
 
         logger::log_update_data_request(&dr);
@@ -705,7 +705,7 @@ mod mock_token_basic_tests {
             outcomes: Some(vec!["a".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -723,7 +723,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(0),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -740,7 +740,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(0),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -766,7 +766,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(1000),
             description: None,
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -794,7 +794,7 @@ mod mock_token_basic_tests {
             ]),
             challenge_period: U64(1000),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -811,7 +811,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(1000),
             description: None,
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -829,7 +829,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(999),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -847,7 +847,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(3001),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -865,7 +865,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -882,7 +882,7 @@ mod mock_token_basic_tests {
             outcomes: None,
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -895,7 +895,7 @@ mod mock_token_basic_tests {
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -979,7 +979,7 @@ mod mock_token_basic_tests {
             outcomes: Some(vec!["a".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -1728,7 +1728,7 @@ mod mock_token_basic_tests {
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });

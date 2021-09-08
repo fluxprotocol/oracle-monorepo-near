@@ -96,7 +96,7 @@ impl TestAccount {
                 "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),
                 "payload": NewDataRequestArgs {
                     sources: vec![],
-                    tags: None,
+                    tags: vec!["1".to_string()],
                     description: Some("test description".to_string()),
                     outcomes: None,
                     challenge_period: U64(1000),

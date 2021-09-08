@@ -136,7 +136,7 @@ mod mock_token_basic_tests {
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });
@@ -161,7 +161,7 @@ mod mock_token_basic_tests {
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
-            tags: None,
+            tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
             creator: bob(),
         });

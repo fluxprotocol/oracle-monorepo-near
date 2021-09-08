@@ -11,7 +11,7 @@ const MIN_PERIOD_MULTIPLIER: u64 = 3;
 #[derive(Serialize, Deserialize)]
 pub struct NewDataRequestArgs {
     pub sources: Vec<data_request::Source>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Vec<String>,
     pub description: Option<String>,
     pub outcomes: Option<Vec<String>>,
     pub challenge_period: WrappedTimestamp,
@@ -31,8 +31,8 @@ impl Contract {
         assert!(challenge_period >= u64::from(min_initial_challenge_window_duration), "Challenge shorter than minimum challenge period of {}", min_initial_challenge_window_duration);
         assert!(challenge_period <= default_challenge_window_duration * MIN_PERIOD_MULTIPLIER, "Challenge period exceeds maximum challenge period of {}", default_challenge_window_duration * MIN_PERIOD_MULTIPLIER);
         assert!(
-            data_request.tags.is_none() ||
-            data_request.tags.as_ref().unwrap().len() as u8 <= MAX_TAGS,
+            data_request.tags.len() == 0 ||
+            data_request.tags.len() as u8 <= MAX_TAGS,
             "Too many tags provided, max tags is: {}",
             MAX_TAGS
         );
