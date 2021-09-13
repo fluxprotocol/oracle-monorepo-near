@@ -2,7 +2,7 @@
 members = [
   "oracle",
   "token",
-  "requestor-contracts"
+  "requester"
 ]
 
 [profile.release]
