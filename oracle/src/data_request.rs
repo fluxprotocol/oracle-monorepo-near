@@ -38,7 +38,7 @@ pub struct DataRequest {
     pub description: Option<String>,
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
-    pub requestor: Requestor, // Requestor contract
+    pub requester: Requester, // requester contract
     pub creator: AccountId, // Account to return the validity bond to
     pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vector<ResolutionWindow>,
@@ -66,7 +66,7 @@ pub struct DataRequestSummary {
     pub description: Option<String>,
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
-    pub requestor: Requestor,
+    pub requester: Requester,
     pub request_config: DataRequestConfigSummary,
     pub creator: AccountId,
     pub finalized_outcome: Option<Outcome>,
@@ -86,7 +86,7 @@ pub struct DataRequestConfigSummary {
 }
 
 trait DataRequestChange {
-    fn new(requestor: Requestor, id: u64, global_config_id: u64, global_config: &oracle_config::OracleConfig, paid_fee: Balance, request_data: NewDataRequestArgs) -> Self;
+    fn new(requester: Requester, id: u64, global_config_id: u64, global_config: &oracle_config::OracleConfig, paid_fee: Balance, request_data: NewDataRequestArgs) -> Self;
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
     fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance;
     fn finalize(&mut self);
@@ -98,7 +98,7 @@ trait DataRequestChange {
 
 impl DataRequestChange for DataRequest {
     fn new(
-        requestor: Requestor,
+        requester: Requester,
         id: u64,
         global_config_id: u64,
         config: &oracle_config::OracleConfig,
@@ -112,7 +112,7 @@ impl DataRequestChange for DataRequest {
             id,
             sources: request_data.sources,
             outcomes: request_data.outcomes,
-            requestor: requestor.clone(),
+            requester: requester.clone(),
             finalized_outcome: None,
             resolution_windows,
             global_config_id,
@@ -121,7 +121,7 @@ impl DataRequestChange for DataRequest {
                 final_arbitrator_invoke_amount: config.final_arbitrator_invoke_amount.into(),
                 final_arbitrator: config.final_arbitrator.to_string(),
                 validity_bond: config.validity_bond.into(),
-                stake_multiplier: requestor.stake_multiplier,
+                stake_multiplier: requester.stake_multiplier,
                 paid_fee
             },
             initial_challenge_period: request_data.challenge_period.into(),
@@ -242,7 +242,7 @@ impl DataRequestChange for DataRequest {
         }
     }
 
-    // @notice Return what's left of validity_bond to requestor
+    // @notice Return what's left of validity_bond to requester
     fn return_validity_bond(&self, token: AccountId) -> PromiseOrValue<bool> {
         match self.finalized_outcome.as_ref().unwrap() {
             Outcome::Answer(_) => {
@@ -399,7 +399,7 @@ impl DataRequestView for DataRequest {
             description: self.description.clone(),
             sources: self.sources.clone(),
             outcomes: self.outcomes.clone(),
-            requestor: self.requestor.clone(),
+            requester: self.requester.clone(),
             creator: self.creator.clone(),
             finalized_outcome: self.finalized_outcome.clone(),
             resolution_windows: resolution_windows,
@@ -439,9 +439,9 @@ impl Contract {
 
         let paid_fee = amount - validity_bond;
         
-        let requestor = self.whitelist.whitelist_get_expect(&sender);
+        let requester = self.whitelist.whitelist_get_expect(&sender);
         let dr = DataRequest::new(
-            requestor,
+            requester,
             self.data_requests.len() as u64, // dr_id
             self.configs.len() - 1, // dr's config id
             &config,
@@ -529,7 +529,7 @@ impl Contract {
         dr.assert_can_finalize();
         let final_outcome = dr.get_final_outcome();
         
-        dr.requestor.set_outcome(final_outcome.unwrap(), dr.tags.clone(), false);
+        dr.requester.set_outcome(final_outcome.unwrap(), dr.tags.clone(), false);
 
         let config = self.configs.get(dr.global_config_id).unwrap();
 
@@ -553,7 +553,7 @@ impl Contract {
         dr.finalize_final_arbitrator(outcome.clone());
 
         let config = self.configs.get(dr.global_config_id).unwrap();
-        dr.requestor.set_outcome(outcome, dr.tags.clone(), true);
+        dr.requester.set_outcome(outcome, dr.tags.clone(), true);
         self.data_requests.replace(request_id.into(), &dr);
 
         logger::log_update_data_request(&dr);
@@ -604,7 +604,7 @@ impl Contract {
 mod mock_token_basic_tests {
     use near_sdk::{ MockedBlockchain };
     use near_sdk::{ testing_env, VMContext };
-    use crate::requestor_handler::{Requestor};
+    use crate::requester_handler::{Requester};
     use crate::data_request::AnswerType;
     use super::*;
     use fee_config::FeeConfig;
@@ -637,9 +637,9 @@ mod mock_token_basic_tests {
         claim_res.payment_token_payout + claim_res.stake_token_payout
     }
 
-    fn registry_entry(account: AccountId) -> Requestor {
-        Requestor {
-            interface_name: account.clone(),
+    fn registry_entry(account: AccountId) -> Requester {
+        Requester {
+            contract_name: account.clone(),
             account_id: account.clone(),
             stake_multiplier: None,
             code_base_url: None
@@ -1711,14 +1711,14 @@ mod mock_token_basic_tests {
     #[test]
     fn dr_fixed_fee() {
         testing_env!(get_context(token()));
-        let bob_requestor = Requestor {
-            interface_name: bob(),
+        let bob_requester = Requester {
+            contract_name: bob(),
             account_id: bob(),
             stake_multiplier: None,
             code_base_url: None,
         };
         let fixed_fee = 20; 
-        let whitelist = Some(vec![bob_requestor, registry_entry(carol())]);
+        let whitelist = Some(vec![bob_requester, registry_entry(carol())]);
         let mut config = config();
         let validity_bond = 2;
         config.validity_bond = U128(validity_bond);
