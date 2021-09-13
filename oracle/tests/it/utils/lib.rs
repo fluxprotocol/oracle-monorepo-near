@@ -31,7 +31,7 @@ pub use oracle::*;
 pub use types::*;
 pub use account_utils::*;
 use deposit::*;
-use requester_contracts;
+use requester_sample_contract;
 use token;
 use oracle::data_request::PERCENTAGE_DIVISOR;
 use uint::construct_uint;
@@ -42,7 +42,7 @@ construct_uint! {
 }
 
 type OracleContract = oracle::ContractContract;
-type RequesterContract = requester_contracts::RequesterContractContract;
+type RequesterContract = requester_sample_contract::RequesterContractContract;
 type TokenContract = token::TokenContractContract;
 
 pub const TOKEN_CONTRACT_ID: &str = "token";
