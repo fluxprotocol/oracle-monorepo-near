@@ -59,10 +59,10 @@ impl TestAccount {
 
     pub fn get_outcome(&self, id: u64) -> Option<Outcome> {
         self.account.call(
-            REQUESTER_CONTRACT_ID.to_string(),
+            ORACLE_CONTRACT_ID.to_string(),
             "get_outcome",
             json!({
-                "request_id": U64(id)
+                "dr_id": U64(id)
             }).to_string().as_bytes(),
             DEFAULT_GAS,
             0
