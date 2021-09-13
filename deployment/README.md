@@ -5,7 +5,7 @@ Change to your account (set up through [near-cli](https://docs.near.org/docs/too
 ```bash
 ACCOUNT=account.testnet
 ORACLE=oracle.account.testnet
-REQUESTOR=requestor.account.testnet
+REQUESTER=requester.account.testnet
 ```
 
 ## Deployment
@@ -15,7 +15,7 @@ The default parameters of `deploy_oracle.sh` are listed inside the script; chang
 ```bash
 bash deployment/deploy_oracle.sh --accountId $ORACLE --gov $ACCOUNT
 
-bash deployment/deploy_requestor.sh --accountId $REQUESTOR --oracle $ORACLE
+bash deployment/deploy_requester.sh --accountId $REQUESTER --oracle $ORACLE
 ```
 
 ## Reset account
