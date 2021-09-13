@@ -17,4 +17,4 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-NEAR_ENV=$network near deploy --accountId $accountId --wasmFile ./res/requestor_contracts.wasm --initFunction new --initArgs '{"oracle": "'$oracle'", "stake_token": "'$stakeToken'"}'
+NEAR_ENV=$network near deploy --accountId $accountId --wasmFile ./res/request_interface.wasm --initFunction new --initArgs '{"oracle": "'$oracle'", "stake_token": "'$stakeToken'"}'

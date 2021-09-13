@@ -1974,7 +1974,7 @@ version = "0.1.0"
 dependencies = [
  "near-sdk",
  "near-sdk-sim",
- "requestor-contracts",
+ "request-interface",
  "serde",
  "token",
  "uint",
@@ -2421,7 +2421,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "requestor-contracts"
+name = "request-interface"
 version = "0.1.0"
 dependencies = [
  "near-sdk",

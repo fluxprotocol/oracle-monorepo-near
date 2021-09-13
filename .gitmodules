@@ -1,6 +1,3 @@
-[submodule "oracle/requester-sample-contract"]
-	path = oracle/requester-sample-contract
-	url = https://github.com/fluxprotocol/requester-sample-contract
-[submodule "requester-sample-contract"]
-	path = requester-sample-contract
+[submodule "requester"]
+	path = requester
 	url = https://github.com/fluxprotocol/requester-sample-contract
