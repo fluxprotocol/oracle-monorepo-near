@@ -1,17 +1,17 @@
 use crate::utils::*;
 use oracle::oracle_config::OracleConfig;
-use oracle::{Requestor};
+use oracle::{Requester};
 use oracle::fee_config::FeeConfig;
 
 pub struct OracleUtils {
     pub contract: ContractAccount<OracleContract>
 }
 
-fn new_registry_entry(contract_id: String, stake_multiplier: Option<u16>) -> Requestor {
-    Requestor {
+fn new_registry_entry(contract_id: String, stake_multiplier: Option<u16>) -> Requester {
+    Requester {
         code_base_url: None,
         account_id: contract_id,
-        interface_name: "test".to_string(),
+        contract_name: "test".to_string(),
         stake_multiplier
     }
 }
@@ -54,8 +54,8 @@ impl OracleUtils {
             // init method
             init_method: new(
                 Some(vec![
-                        new_registry_entry(REQUESTOR_CONTRACT_ID.to_string(), stake_multiplier), 
-                        new_registry_entry(REQUESTOR_CONTRACT_ID.to_string(), stake_multiplier)
+                        new_registry_entry(REQUESTER_CONTRACT_ID.to_string(), stake_multiplier), 
+                        new_registry_entry(REQUESTER_CONTRACT_ID.to_string(), stake_multiplier)
                     ]
                 ), 
                 config

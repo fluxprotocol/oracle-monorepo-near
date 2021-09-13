@@ -10,7 +10,7 @@ near_sdk::setup_alloc!();
 pub mod types;
 mod resolution_window;
 pub mod data_request;
-mod requestor_handler;
+mod requester_handler;
 mod fungible_token_receiver;
 pub mod callback_args;
 pub mod whitelist;
@@ -29,7 +29,7 @@ pub use callback_args::*;
 use types::*;
 pub use data_request::{ DataRequest, Source };
 use storage_manager::AccountStorageBalance;
-pub use requestor_handler::Requestor;
+pub use requester_handler::Requester;
 
 #[near_bindgen]
 #[derive(BorshSerialize, BorshDeserialize )]
@@ -50,7 +50,7 @@ impl Default for Contract {
 impl Contract {
     #[init]
     pub fn new(
-        initial_whitelist: Option<Vec<Requestor>>,
+        initial_whitelist: Option<Vec<Requester>>,
         config: oracle_config::OracleConfig,
     ) -> Self {
         let mut configs = Vector::new(b"c".to_vec());

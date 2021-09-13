@@ -15,4 +15,4 @@ serde = "1.0.118"
 [dev-dependencies]
 near-sdk-sim = { git = "https://github.com/near/near-sdk-rs.git", rev="249dacdcd3fd34bc00f0895a275f33f05cd910c1" }
 token = { path = "./../token" }
-requestor-contracts = { path = "./../requestor-contracts" }
+requester-contracts = { path = "./../requester-contracts" }

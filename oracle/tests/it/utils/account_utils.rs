@@ -19,7 +19,7 @@ impl TestAccount {
                 let account = master_account.create_user(account_id.expect("expected account id").to_string(), init_balance());
                 storage_deposit(TOKEN_CONTRACT_ID, &master_account, SAFE_STORAGE_AMOUNT, Some(account.account_id())); 
                 storage_deposit(ORACLE_CONTRACT_ID, &master_account, 46800000000000000000000, Some(account.account_id())); 
-                storage_deposit(ORACLE_CONTRACT_ID, &master_account, 46800000000000000000000, Some(REQUESTOR_CONTRACT_ID.to_string())); 
+                storage_deposit(ORACLE_CONTRACT_ID, &master_account, 46800000000000000000000, Some(REQUESTER_CONTRACT_ID.to_string())); 
                 near_deposit(&account, init_balance() / 2);
                 Self {
                     account
@@ -59,7 +59,7 @@ impl TestAccount {
 
     pub fn get_outcome(&self, id: u64) -> Option<Outcome> {
         self.account.call(
-            REQUESTOR_CONTRACT_ID.to_string(),
+            REQUESTER_CONTRACT_ID.to_string(),
             "get_outcome",
             json!({
                 "request_id": U64(id)
@@ -81,7 +81,7 @@ impl TestAccount {
             TOKEN_CONTRACT_ID.to_string(), 
             "ft_transfer", 
             json!({
-                "receiver_id": REQUESTOR_CONTRACT_ID,
+                "receiver_id": REQUESTER_CONTRACT_ID,
                 "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),
             }).to_string().as_bytes(),
             DEFAULT_GAS,
@@ -90,7 +90,7 @@ impl TestAccount {
         assert!(transfer_res.is_ok(), "ft_transfer_call failed with res: {:?}", transfer_res);
         
         let dr_new_res = self.account.call(
-            REQUESTOR_CONTRACT_ID.to_string(), 
+            REQUESTER_CONTRACT_ID.to_string(), 
             "create_data_request", 
             json!({
                 "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),

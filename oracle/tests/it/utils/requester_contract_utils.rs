@@ -1,18 +1,18 @@
 use crate::utils::*;
-pub struct RequestInterfaceUtils {
-    pub contract: ContractAccount<RequestInterfaceContract>
+pub struct RequesterContractUtils {
+    pub contract: ContractAccount<RequesterContract>
 }
 
-impl RequestInterfaceUtils {
+impl RequesterContractUtils {
     pub fn new(master_account: &TestAccount) -> Self {
         // deploy token
         let contract = deploy!(
             // Contract Proxy
-            contract: RequestInterfaceContract,
+            contract: RequesterContract,
             // Contract account id
-            contract_id: REQUESTOR_CONTRACT_ID,
+            contract_id: REQUESTER_CONTRACT_ID,
             // Bytes of contract
-            bytes: &REQUEST_INTERFACE_WASM_BYTES,
+            bytes: &REQUESTER_CONTRACT_WASM_BYTES,
             // User deploying the contract,
             signer_account: master_account.account,
             deposit: to_yocto("1000"),
@@ -24,8 +24,8 @@ impl RequestInterfaceUtils {
             )
         );
         
-        storage_deposit(TOKEN_CONTRACT_ID, &master_account.account, SAFE_STORAGE_AMOUNT, Some(REQUESTOR_CONTRACT_ID.to_string()));
-        storage_deposit(ORACLE_CONTRACT_ID, &master_account.account, 5140000000000000000000, Some(REQUESTOR_CONTRACT_ID.to_string()));
+        storage_deposit(TOKEN_CONTRACT_ID, &master_account.account, SAFE_STORAGE_AMOUNT, Some(REQUESTER_CONTRACT_ID.to_string()));
+        storage_deposit(ORACLE_CONTRACT_ID, &master_account.account, 5140000000000000000000, Some(REQUESTER_CONTRACT_ID.to_string()));
 
         Self {
             contract

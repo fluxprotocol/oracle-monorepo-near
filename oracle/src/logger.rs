@@ -13,7 +13,7 @@ use crate::{
     types::*,
     data_request::DataRequest,
     resolution_window::ResolutionWindow,
-    requestor_handler::Requestor,
+    requester_handler::Requester,
     oracle_config::{
         OracleConfig
     },
@@ -33,8 +33,8 @@ pub fn log_new_data_request(request: &DataRequest) {
                 "sources": request.sources,
                 "description": request.description,
                 "outcomes": request.outcomes,
-                "requestor": request.requestor,
-                "requestor_account_id": request.requestor.account_id,
+                "requester": request.requester,
+                "requester_account_id": request.requester.account_id,
                 "finalized_outcome": request.finalized_outcome,
                 "initial_challenge_period": U64(request.initial_challenge_period),
                 "final_arbitrator_triggered": request.final_arbitrator_triggered,
@@ -63,7 +63,7 @@ pub fn log_update_data_request(request: &DataRequest) {
                 "id": U64(request.id),
                 "sources": request.sources,
                 "outcomes": request.outcomes,
-                "requestor": request.requestor,
+                "requester": request.requester,
                 "finalized_outcome": request.finalized_outcome,
                 "initial_challenge_period": U64(request.initial_challenge_period),
                 "final_arbitrator_triggered": request.final_arbitrator_triggered,
@@ -233,18 +233,18 @@ pub fn log_claim(
     );
 }
 
-pub fn log_whitelist(requestor: &Requestor, active: bool) {
+pub fn log_whitelist(requester: &Requester, active: bool) {
     env::log(
         json!({
             "type": "whitelist",
             "action": "update",
-            "cap_id": format!("wl_{}", requestor.account_id),
+            "cap_id": format!("wl_{}", requester.account_id),
             "params": {
-                "id": format!("wl_{}", requestor.account_id),
-                "interface_name": requestor.interface_name,
-                "account_id": requestor.account_id,
-                "stake_multiplier": requestor.stake_multiplier,
-                "code_base_url": requestor.code_base_url,
+                "id": format!("wl_{}", requester.account_id),
+                "contract_name": requester.contract_name,
+                "account_id": requester.account_id,
+                "stake_multiplier": requester.stake_multiplier,
+                "code_base_url": requester.code_base_url,
                 "active": active,
                 "date": U64(ns_to_ms(env::block_timestamp())),
                 "block_height": U64(env::block_index()),

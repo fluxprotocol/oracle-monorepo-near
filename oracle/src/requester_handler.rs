@@ -5,13 +5,13 @@ use near_sdk::serde::{Serialize, Deserialize};
 const GAS_BASE_SET_OUTCOME: Gas = 250_000_000_000_000;
 
 #[ext_contract]
-pub trait RequestorContractExtern {
-    fn set_outcome(requestor: AccountId, outcome: Outcome, tags: Vec<String>, final_arbitrator_triggered: bool);
+pub trait RequesterContractExtern {
+    fn set_outcome(requester: AccountId, outcome: Outcome, tags: Vec<String>, final_arbitrator_triggered: bool);
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-pub struct Requestor {
-    pub interface_name: String,
+pub struct Requester {
+    pub contract_name: String,
     pub account_id: AccountId, // Change to account_id
     pub stake_multiplier: Option<u16>, 
     pub code_base_url: Option<String>
@@ -22,10 +22,10 @@ trait SelfExt {
     fn proceed_dr_new(&mut self, sender: AccountId, amount: Balance, payload: NewDataRequestArgs);
 }
 
-impl Requestor {
+impl Requester {
     pub fn new_no_whitelist(account_id: &AccountId) -> Self {
         Self {
-            interface_name: "".to_string(),
+            contract_name: "".to_string(),
             account_id: account_id.to_string(),
             stake_multiplier: None,
             code_base_url: None
@@ -37,7 +37,7 @@ impl Requestor {
         tags: Vec<String>,
         final_arbitrator_triggered: bool
     ) -> Promise {
-        requestor_contract_extern::set_outcome(
+        requester_contract_extern::set_outcome(
             self.account_id.to_string(),
             outcome,
             tags,

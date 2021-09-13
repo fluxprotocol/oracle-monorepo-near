@@ -27,7 +27,7 @@ fn dr_claim_flow() {
     let post_stake_balance_alice = init_res.alice.get_token_balance(None);
     assert_eq!(post_stake_balance_alice, init_balance_alice - stake_cost - validity_bond - fee);
     
-    init_res.bob.ft_transfer(&REQUESTOR_CONTRACT_ID, 1_000_000);
+    init_res.bob.ft_transfer(&REQUESTER_CONTRACT_ID, 1_000_000);
     init_res.alice.finalize(0);
     // init_res.alice.claim(0);
     
@@ -65,7 +65,7 @@ fn dr_fixed_fee_flow() {
     let post_stake_balance_alice = init_res.alice.get_token_balance(None);
     assert_eq!(post_stake_balance_alice, init_balance_alice - dr_cost - custom_fee_amount*2);
     
-    init_res.bob.ft_transfer(&REQUESTOR_CONTRACT_ID, 100_000);
+    init_res.bob.ft_transfer(&REQUESTER_CONTRACT_ID, 100_000);
 
     init_res.alice.finalize(0);
     init_res.alice.claim(0);
@@ -102,7 +102,7 @@ fn dr_multiplier_flow() {
     let weighted_stake_cost = u128::from(stake_cost as u64 * multiplier_amount as u64 / PERCENTAGE_DIVISOR as u64);
     assert_eq!(post_stake_balance_alice, init_balance_alice - dr_cost - weighted_stake_cost);
     
-    init_res.bob.ft_transfer(&REQUESTOR_CONTRACT_ID, 100_000);
+    init_res.bob.ft_transfer(&REQUESTER_CONTRACT_ID, 100_000);
 
     init_res.alice.finalize(0);
     init_res.alice.claim(0);

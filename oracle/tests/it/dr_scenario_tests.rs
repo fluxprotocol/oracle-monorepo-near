@@ -14,12 +14,12 @@ fn dr_scenario_1() {
     let init_balance_alice = init_res.alice.get_token_balance(None);
     let init_balance_bob = init_res.bob.get_token_balance(None);
     let init_balance_carol = init_res.carol.get_token_balance(None);
-    println!("Request interface before data request creation: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface before data request creation: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     let _new_dr_res = init_res.alice.dr_new(0, Some(validity_bond));
     let dr_exist = init_res.alice.dr_exists(0);
     assert!(dr_exist, "something went wrong during dr creation");
     
-    println!("Request interface before staking: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface before staking: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     // println!("Bob balance before staking:   {}", init_balance_bob); // same for carol
     
     for i in 0..12 {
@@ -46,7 +46,7 @@ fn dr_scenario_1() {
                 assert_eq!(post_stake_balance_carol, pre_stake_balance_carol - bond_size);
             }
         };
-        // println!("Request interface balance after stake: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+        // println!("Request interface balance after stake: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     }
     
     // since final arbitrator is invoked, any stakes after this point will be fully refunded
@@ -62,7 +62,7 @@ fn dr_scenario_1() {
     println!("Carol has spent {} altogether on staking", pre_claim_difference_carol);
     
     // // finalize
-    println!("Request interface balance before claim: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface balance before claim: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     let correct_outcome = Outcome::Answer(AnswerType::String("test".to_string()));
     init_res.alice.dr_final_arbitrator_finalize(0, correct_outcome);
     let post_outcome = init_res.alice.get_outcome(0);
@@ -84,7 +84,7 @@ fn dr_scenario_1() {
     println!("Alice final balance:             {}", post_balance_alice);
     println!("Bob final balance:               {}", post_balance_bob);
     println!("Carol final balance:             {}", post_balance_carol);
-    println!("Request interface final balance: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface final balance: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     
     println!("Bob gained {} from claim for a total profit of {}", post_stake_difference_bob, post_total_difference_bob);
     println!("Carol gained {} from claim for a total loss of {}", post_stake_difference_carol, post_total_difference_carol);
@@ -161,7 +161,7 @@ fn dr_scenario_2() {
     println!("Jasper has spent {} altogether on staking", pre_claim_difference_jasper);
     println!("Peter has spent {} altogether on staking", pre_claim_difference_peter);
     
-    init_res.treasurer.ft_transfer(&REQUESTOR_CONTRACT_ID, 100_000);
+    init_res.treasurer.ft_transfer(&REQUESTER_CONTRACT_ID, 100_000);
     init_res.alice.finalize(0);
     let post_outcome = init_res.alice.get_outcome(0);
     println!("Outcome on target after finalize: {:?}", post_outcome);
@@ -291,7 +291,7 @@ fn dr_scenario_3() {
     println!("Illia has spent {} altogether on staking", pre_claim_difference_illia);
     println!("Vitalik has spent {} altogether on staking", pre_claim_difference_vitalik);
     
-    init_res.treasurer.ft_transfer(&REQUESTOR_CONTRACT_ID, 100_000);
+    init_res.treasurer.ft_transfer(&REQUESTER_CONTRACT_ID, 100_000);
     init_res.alice.finalize(0);
     init_res.bob.claim(0);
     init_res.carol.claim(0);
@@ -389,7 +389,7 @@ fn dr_scenario_multiplier() {
     println!("Bob has spent {} altogether on staking", pre_claim_difference_bob);
     println!("Carol has spent {} altogether on staking", pre_claim_difference_carol);
     
-    init_res.treasurer.ft_transfer(&REQUESTOR_CONTRACT_ID, 100_000);
+    init_res.treasurer.ft_transfer(&REQUESTER_CONTRACT_ID, 100_000);
     init_res.alice.finalize(0);
     init_res.bob.claim(0);
     // init_res.carol.claim(0);
@@ -437,7 +437,7 @@ fn dr_scenario_fixed_fee() {
     // send some funds to oracle so that is it able to pay out the fixed fee
     init_res.alice.ft_transfer(ORACLE_CONTRACT_ID, 9999);
 
-    println!("Request interface before staking: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface before staking: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     
     for i in 0..7 {
         let bond_size = calc_bond_size(validity_bond, i, None); // stake 2, 4, 16, 33, ...
@@ -457,7 +457,7 @@ fn dr_scenario_fixed_fee() {
         };
     }
 
-    println!("Request interface after staking: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface after staking: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
     
     // get balances before finalization and claim and amount spent on staking
     let pre_claim_balance_bob = init_res.bob.get_token_balance(None);
@@ -469,7 +469,7 @@ fn dr_scenario_fixed_fee() {
     println!("Bob has spent {} altogether on staking", pre_claim_difference_bob);
     println!("Carol has spent {} altogether on staking", pre_claim_difference_carol);
     
-    init_res.treasurer.ft_transfer(&REQUESTOR_CONTRACT_ID, 100_000);
+    init_res.treasurer.ft_transfer(&REQUESTER_CONTRACT_ID, 100_000);
     init_res.alice.finalize(0);
     init_res.bob.claim(0);
     // init_res.carol.claim(0);
@@ -487,7 +487,7 @@ fn dr_scenario_fixed_fee() {
     println!("Alice final balance:             {}", post_balance_alice);
     println!("Bob final balance:               {}", post_balance_bob);
     println!("Carol final balance:             {}", post_balance_carol);
-    println!("Request interface final balance: {}", init_res.alice.get_token_balance(Some(REQUESTOR_CONTRACT_ID.to_string())));
+    println!("Request interface final balance: {}", init_res.alice.get_token_balance(Some(REQUESTER_CONTRACT_ID.to_string())));
 
     println!("Bob gained {} from claim for a total profit of {}", post_stake_difference_bob, post_total_difference_bob);
     println!("Carol gained {} from claim for a total loss of {}", post_stake_difference_carol, post_total_difference_carol);
