@@ -529,7 +529,7 @@ impl Contract {
         dr.assert_can_finalize();
         let final_outcome = dr.get_final_outcome();
         
-        dr.requester.set_outcome(final_outcome.unwrap(), dr.tags.clone(), false);
+        dr.requester.set_outcome(final_outcome.unwrap(), dr.tags.clone());
 
         let config = self.configs.get(dr.global_config_id).unwrap();
 
@@ -553,7 +553,7 @@ impl Contract {
         dr.finalize_final_arbitrator(outcome.clone());
 
         let config = self.configs.get(dr.global_config_id).unwrap();
-        dr.requester.set_outcome(outcome, dr.tags.clone(), true);
+        dr.requester.set_outcome(outcome, dr.tags.clone());
         self.data_requests.replace(request_id.into(), &dr);
 
         logger::log_update_data_request(&dr);

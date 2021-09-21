@@ -6,7 +6,7 @@ const GAS_BASE_SET_OUTCOME: Gas = 250_000_000_000_000;
 
 #[ext_contract]
 pub trait RequesterContractExtern {
-    fn set_outcome(requester: AccountId, outcome: Outcome, tags: Vec<String>, final_arbitrator_triggered: bool);
+    fn set_outcome(requester: AccountId, outcome: Outcome, tags: Vec<String>);
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
@@ -34,14 +34,12 @@ impl Requester {
     pub fn set_outcome(
         &self,
         outcome: Outcome,
-        tags: Vec<String>,
-        final_arbitrator_triggered: bool
+        tags: Vec<String>
     ) -> Promise {
         requester_contract_extern::set_outcome(
             self.account_id.to_string(),
             outcome,
             tags,
-            final_arbitrator_triggered,
 
             // NEAR params
             &self.account_id,
