@@ -1,8 +1,11 @@
 use crate::*;
+use crate::requester_handler::RequesterHandler;
 
 use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
 use near_sdk::AccountId;
 use near_sdk::collections::LookupMap;
+
+use flux_sdk::requester::Requester;
    
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct Whitelist(Option<LookupMap<AccountId, Requester>>); // maps requester account id to requesters config
@@ -45,7 +48,7 @@ impl Whitelist {
             Some(whitelist) => {
                 whitelist.get(requester).expect("requester not whitelisted")
             }, 
-            None => Requester::new_no_whitelist(requester)
+            None => RequesterHandler::new_no_whitelist(requester)
         }
     }
 }

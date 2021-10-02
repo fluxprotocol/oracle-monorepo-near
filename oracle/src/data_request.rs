@@ -7,7 +7,8 @@ use near_sdk::collections::Vector;
 use crate::helpers::multiply_stake;
 use crate::logger;
 use crate::fungible_token::fungible_token_transfer;
-use crate::resolution_window::ResolutionWindow;
+use crate::resolution_window::ResolutionWindowHandler;
+use crate::requester_handler::RequesterHandler;
 
 use flux_sdk::data_request::{ NewDataRequestArgs, ClaimRes, DataRequestConfig, DataRequestSummary, DataRequestDataType, DataRequestConfigSummary, StakeDataRequestArgs };
 use flux_sdk::outcome::{ AnswerType, Outcome };
@@ -78,7 +79,7 @@ impl DataRequestChange for DataRequest {
             .iter()
             .last()
             .unwrap_or_else( || {
-                ResolutionWindow::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp())
+                ResolutionWindowHandler::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp())
             });
         
         let unspent = window.stake(sender, outcome, amount);
@@ -97,7 +98,7 @@ impl DataRequestChange for DataRequest {
         // If the final arbitrator is invoked other stake won't come through.
         if window.bonded_outcome.is_some() && !self.invoke_final_arbitrator(window.bond_size) {
             self.resolution_windows.push(
-                &ResolutionWindow::new(
+                &ResolutionWindowHandler::new(
                     self.id,
                     self.resolution_windows.len() as u16,
                     window.bond_size,
@@ -181,7 +182,7 @@ impl DataRequestChange for DataRequest {
     fn return_validity_bond(&self, token: AccountId) -> PromiseOrValue<bool> {
         match self.finalized_outcome.as_ref().unwrap() {
             Outcome::Answer(_) => {
-                PromiseOrValue::Promise(fungible_token_transfer(token, self.creator.clone(), self.request_config.validity_bond))
+                PromiseOrValue::Promise(fungible_token_transfer(token, self.requester.account_id.clone(), self.request_config.validity_bond))
             },
             Outcome::Invalid => PromiseOrValue::Value(false)
 
@@ -335,7 +336,6 @@ impl DataRequestView for DataRequest {
             sources: self.sources.clone(),
             outcomes: self.outcomes.clone(),
             requester: self.requester.clone(),
-            creator: self.creator.clone(),
             finalized_outcome: self.finalized_outcome.clone(),
             resolution_windows: resolution_windows,
             global_config_id: U64(self.global_config_id),
@@ -642,7 +642,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -660,7 +659,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -677,7 +675,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -703,7 +700,6 @@ mod mock_token_basic_tests {
             description: None,
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -731,7 +727,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -748,7 +743,6 @@ mod mock_token_basic_tests {
             description: None,
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -766,7 +760,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -784,7 +777,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -802,7 +794,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
@@ -819,7 +810,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
         assert_eq!(amount, 0);
     }
@@ -832,7 +822,6 @@ mod mock_token_basic_tests {
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
             data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
         });
     }
 
