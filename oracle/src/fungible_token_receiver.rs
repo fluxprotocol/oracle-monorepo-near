@@ -3,6 +3,8 @@ use crate::*;
 use near_sdk::serde::{ Serialize, Deserialize };
 use near_sdk::serde_json;
 use near_sdk::PromiseOrValue;
+use flux_sdk::data_request::{ NewDataRequestArgs, StakeDataRequestArgs };
+use flux_sdk::types::WrappedBalance;
 
 #[derive(Serialize, Deserialize)]
 pub enum Payload {

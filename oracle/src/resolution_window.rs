@@ -1,21 +1,12 @@
 use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
-use near_sdk::serde::{ Deserialize, Serialize };
 use near_sdk::{ Balance, AccountId };
 use near_sdk::collections::{ LookupMap };
 
-use crate::types::*;
+use flux_sdk::outcome::Outcome;
+use flux_sdk::types::Timestamp;
+use flux_sdk::resolution_window::{ CorrectStake, WindowStakeResult };
+
 use crate::logger;
-
-pub enum WindowStakeResult {
-    Incorrect(Balance), // Round bonded outcome was correct
-    Correct(CorrectStake), // Round bonded outcome was incorrect
-    NoResult // Last / non-bonded window
-}
-
-pub struct CorrectStake {
-    pub bonded_stake: Balance,
-    pub user_stake: Balance,
-}
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct ResolutionWindow {
@@ -27,15 +18,6 @@ pub struct ResolutionWindow {
     pub outcome_to_stake: LookupMap<Outcome, Balance>,
     pub user_to_outcome_to_stake: LookupMap<AccountId, LookupMap<Outcome, Balance>>,
     pub bonded_outcome: Option<Outcome>,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-pub struct ResolutionWindowSummary {
-    pub round: u16,
-    pub start_time: WrappedTimestamp, 
-    pub end_time: WrappedTimestamp,
-    pub bond_size: WrappedBalance,
-    pub bonded_outcome: Option<Outcome>
 }
 
 impl ResolutionWindow {

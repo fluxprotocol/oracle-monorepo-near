@@ -1,6 +1,11 @@
 use crate::*;
+use near_sdk::serde::{ Serialize, Deserialize };
 use near_sdk::{PromiseOrValue, ext_contract, Gas, Promise};
-use near_sdk::serde::{Serialize, Deserialize};
+
+use flux_sdk::data_request::NewDataRequestArgs;
+use flux_sdk::outcome::Outcome;
+use flux_sdk::types::WrappedBalance;
+use flux_sdk::requester::Requester;
 
 const GAS_BASE_SET_OUTCOME: Gas = 250_000_000_000_000;
 
@@ -9,20 +14,17 @@ pub trait RequesterContractExtern {
     fn set_outcome(requester: AccountId, outcome: Outcome, tags: Vec<String>);
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-pub struct Requester {
-    pub contract_name: String,
-    pub account_id: AccountId, // Change to account_id
-    pub stake_multiplier: Option<u16>, 
-    pub code_base_url: Option<String>
-}
-
 #[ext_contract(ext_self)]
 trait SelfExt {
     fn proceed_dr_new(&mut self, sender: AccountId, amount: Balance, payload: NewDataRequestArgs);
 }
 
-impl Requester {
+trait RequesterHandler {
+    pub fn new_no_whitelist(account_id: &AccountId) -> Self;
+    pub fn set_outcome(&self, outcome: Outcome, tags: Vec<String>) -> Promise;
+}
+
+impl RequesterHandler for Requester {
     pub fn new_no_whitelist(account_id: &AccountId) -> Self {
         Self {
             contract_name: "".to_string(),
