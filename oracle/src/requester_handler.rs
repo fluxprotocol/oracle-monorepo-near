@@ -1,11 +1,16 @@
 use crate::*;
-use near_sdk::serde::{ Serialize, Deserialize };
-use near_sdk::{PromiseOrValue, ext_contract, Gas, Promise};
-
-use flux_sdk::data_request::NewDataRequestArgs;
-use flux_sdk::outcome::Outcome;
-use flux_sdk::types::WrappedBalance;
-use flux_sdk::requester::Requester;
+use near_sdk::{
+    PromiseOrValue,
+    ext_contract, 
+    Gas,
+    Promise
+};
+use flux_sdk::{
+    data_request::NewDataRequestArgs,
+    outcome::Outcome,
+    types::WrappedBalance,
+    requester::Requester
+};
 
 const GAS_BASE_SET_OUTCOME: Gas = 250_000_000_000_000;
 

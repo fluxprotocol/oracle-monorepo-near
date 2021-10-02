@@ -1,6 +1,8 @@
 use crate::*;
-use flux_sdk::data_request::NewDataRequestArgs;
-use flux_sdk::consts::{ MAX_SOURCES, MAX_TAGS, MIN_OUTCOMES, MIN_PERIOD_MULTIPLIER };
+use flux_sdk::{
+    consts::{ MAX_SOURCES, MAX_TAGS, MIN_OUTCOMES, MIN_PERIOD_MULTIPLIER },
+    data_request::NewDataRequestArgs
+};
 
 impl Contract {
     pub fn dr_validate(&self, data_request: &NewDataRequestArgs) {
