@@ -1,18 +1,19 @@
 use crate::*;
 
-use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
-use near_sdk::json_types::{U64, U128};
-use near_sdk::serde::{ Deserialize, Serialize };
+use near_sdk::json_types::{ U64, U128 };
 use near_sdk::{ env, Balance, AccountId, PromiseOrValue, Promise, ext_contract };
-use near_sdk::collections::{ Vector };
+use near_sdk::collections::Vector;
 
-use crate::resolution_window::*;
-use crate::types::*;
 use crate::helpers::multiply_stake;
 use crate::logger;
-use crate::fungible_token::{ fungible_token_transfer };
+use crate::fungible_token::fungible_token_transfer;
+use crate::resolution_window::ResolutionWindow;
 
-pub const PERCENTAGE_DIVISOR: u16 = 10_000;
+use flux_sdk::data_request::{ NewDataRequestArgs, ClaimRes, DataRequestConfig, DataRequestSummary, DataRequestDataType, DataRequestConfigSummary, StakeDataRequestArgs };
+use flux_sdk::outcome::{ AnswerType, Outcome };
+use flux_sdk::types::WrappedBalance;
+use flux_sdk::resolution_window::{ WindowStakeResult, ResolutionWindowSummary };
+
 pub const FINALIZATION_GAS: u64 = 250_000_000_000_000;
 
 #[ext_contract]
@@ -20,73 +21,8 @@ trait ExtSelf {
     fn dr_proceed_finalization(request_id: U64, sender: AccountId);
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Clone)]
-pub struct Source {
-    pub end_point: String, // pro.coinbase.com/USD/ETH
-    pub source_path: String // data.price.usdeth
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Deserialize, Serialize, Debug, PartialEq, Clone)]
-pub enum DataRequestDataType {
-    Number(U128),
-    String,
-}
-
-#[derive(BorshSerialize, BorshDeserialize)]
-pub struct DataRequest {
-    pub id: u64,
-    pub description: Option<String>,
-    pub sources: Vec<Source>,
-    pub outcomes: Option<Vec<String>>,
-    pub requester: Requester, // requester contract
-    pub creator: AccountId, // Account to return the validity bond to
-    pub finalized_outcome: Option<Outcome>,
-    pub resolution_windows: Vector<ResolutionWindow>,
-    pub global_config_id: u64, // Config id
-    pub request_config: DataRequestConfig, // Config enforced by global parameters
-    pub initial_challenge_period: Duration, // challenge period for first resolution
-    pub final_arbitrator_triggered: bool,
-    pub tags: Vec<String>,
-    pub data_type: DataRequestDataType,
-}
-
-#[derive(BorshSerialize, BorshDeserialize)]
-pub struct DataRequestConfig {
-    default_challenge_window_duration: Duration,
-    final_arbitrator_invoke_amount: Balance,
-    final_arbitrator: AccountId,
-    validity_bond: Balance,
-    pub paid_fee: Balance,
-    pub stake_multiplier: Option<u16>,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-pub struct DataRequestSummary {
-    pub id: u64,
-    pub description: Option<String>,
-    pub sources: Vec<Source>,
-    pub outcomes: Option<Vec<String>>,
-    pub requester: Requester,
-    pub request_config: DataRequestConfigSummary,
-    pub creator: AccountId,
-    pub finalized_outcome: Option<Outcome>,
-    pub resolution_windows: Vec<ResolutionWindowSummary>,
-    pub global_config_id: U64,
-    pub initial_challenge_period: U64,
-    pub final_arbitrator_triggered: bool,
-    pub tags: Vec<String>,
-    pub data_type: DataRequestDataType,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-pub struct DataRequestConfigSummary {
-    pub validity_bond: WrappedBalance,
-    pub paid_fee: WrappedBalance,
-    pub stake_multiplier: Option<u16>,
-}
-
 trait DataRequestChange {
-    fn new(requester: Requester, id: u64, global_config_id: u64, global_config: &oracle_config::OracleConfig, paid_fee: Balance, request_data: NewDataRequestArgs) -> Self;
+    fn new(requester: Requester, id: u64, global_config_id: u64, global_config: &OracleConfig, paid_fee: Balance, request_data: NewDataRequestArgs) -> Self;
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
     fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance;
     fn finalize(&mut self);
@@ -101,7 +37,7 @@ impl DataRequestChange for DataRequest {
         requester: Requester,
         id: u64,
         global_config_id: u64,
-        config: &oracle_config::OracleConfig,
+        config: &OracleConfig,
         paid_fee: Balance, 
         request_data: NewDataRequestArgs
     ) -> Self {
@@ -110,7 +46,7 @@ impl DataRequestChange for DataRequest {
         
         Self {
             id,
-            sources: request_data.sources,
+            sources: request_data.sources.unwrap(),
             outcomes: request_data.outcomes,
             requester: requester.clone(),
             finalized_outcome: None,
@@ -129,7 +65,6 @@ impl DataRequestChange for DataRequest {
             description: request_data.description,
             tags: request_data.tags,
             data_type: request_data.data_type,
-            creator: request_data.creator,
         }
     }
 

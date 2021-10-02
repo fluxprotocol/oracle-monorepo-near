@@ -1,6 +1,7 @@
 use crate::utils::*;
 use oracle::data_request::DataRequestDataType;
 use oracle::types::*;
+use flux_sdk::NewDataRequestArgs;
 pub fn init_balance() -> u128 {
     to_yocto("100000")
 }

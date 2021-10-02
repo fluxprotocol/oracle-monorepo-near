@@ -7,7 +7,6 @@ use near_sdk::json_types::{ U64, U128 };
 
 near_sdk::setup_alloc!();
 
-pub mod types;
 mod resolution_window;
 pub mod data_request;
 mod requester_handler;
@@ -26,16 +25,18 @@ mod fungible_token;
 
 pub use callback_args::*;
 
-use types::*;
-pub use data_request::{ DataRequest, Source };
 use storage_manager::AccountStorageBalance;
-pub use requester_handler::Requester;
+use crate::requester_handler::Requester;
+use flux_sdk::{
+    data_request::{ DataRequest, Source },
+    config::OracleConfig,
+};
 
 #[near_bindgen]
 #[derive(BorshSerialize, BorshDeserialize )]
 pub struct Contract {
     pub whitelist: whitelist::Whitelist,
-    pub configs: Vector<oracle_config::OracleConfig>,
+    pub configs: Vector<OracleConfig>,
     pub data_requests: Vector<DataRequest>,
     pub accounts: LookupMap<AccountId, AccountStorageBalance>, // storage map
 }
@@ -51,7 +52,7 @@ impl Contract {
     #[init]
     pub fn new(
         initial_whitelist: Option<Vec<Requester>>,
-        config: oracle_config::OracleConfig,
+        config: OracleConfig,
     ) -> Self {
         let mut configs = Vector::new(b"c".to_vec());
         configs.push(&config);

@@ -8,19 +8,14 @@ use near_sdk::{
     },
     serde_json::json,
 };
-
-use crate::{
-    types::*,
+use flux_sdk::{
     data_request::DataRequest,
-    resolution_window::ResolutionWindow,
-    requester_handler::Requester,
-    oracle_config::{
-        OracleConfig
-    },
-    helpers::{
-        ns_to_ms,
-    }
+    config::OracleConfig,
+    outcome::{ AnswerType, Outcome },
 };
+use crate::helpers::ns_to_ms;
+use crate::resolution_window::ResolutionWindow;
+use crate::requester_handler::Requester;
 
 pub fn log_new_data_request(request: &DataRequest) {
     env::log(
