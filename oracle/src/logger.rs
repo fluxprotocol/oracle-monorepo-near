@@ -12,10 +12,10 @@ use flux_sdk::{
     data_request::DataRequest,
     config::OracleConfig,
     outcome::{ AnswerType, Outcome },
+    requester::Requester,
+    resolution_window::ResolutionWindow,
 };
 use crate::helpers::ns_to_ms;
-use crate::resolution_window::ResolutionWindow;
-use crate::requester_handler::Requester;
 
 pub fn log_new_data_request(request: &DataRequest) {
     env::log(
@@ -40,7 +40,6 @@ pub fn log_new_data_request(request: &DataRequest) {
                 "date": U64(ns_to_ms(env::block_timestamp())),
                 "block_height": U64(env::block_index()),
                 "data_type": request.data_type,
-                "creator": request.creator,
             }
         })
         .to_string()

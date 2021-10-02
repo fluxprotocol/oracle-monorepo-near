@@ -19,13 +19,13 @@ trait SelfExt {
     fn proceed_dr_new(&mut self, sender: AccountId, amount: Balance, payload: NewDataRequestArgs);
 }
 
-trait RequesterHandler {
-    pub fn new_no_whitelist(account_id: &AccountId) -> Self;
-    pub fn set_outcome(&self, outcome: Outcome, tags: Vec<String>) -> Promise;
+pub trait RequesterHandler {
+    fn new_no_whitelist(account_id: &AccountId) -> Self;
+    fn set_outcome(&self, outcome: Outcome, tags: Vec<String>) -> Promise;
 }
 
 impl RequesterHandler for Requester {
-    pub fn new_no_whitelist(account_id: &AccountId) -> Self {
+    fn new_no_whitelist(account_id: &AccountId) -> Self {
         Self {
             contract_name: "".to_string(),
             account_id: account_id.to_string(),
@@ -33,7 +33,7 @@ impl RequesterHandler for Requester {
             code_base_url: None
         }
     }
-    pub fn set_outcome(
+    fn set_outcome(
         &self,
         outcome: Outcome,
         tags: Vec<String>
@@ -53,7 +53,6 @@ impl RequesterHandler for Requester {
 
 #[near_bindgen]
 impl Contract {
-
     /**
      * @notice called in ft_on_transfer to chain together fetching of TVL and data request creation
      */

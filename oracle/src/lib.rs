@@ -26,10 +26,10 @@ mod fungible_token;
 pub use callback_args::*;
 
 use storage_manager::AccountStorageBalance;
-use crate::requester_handler::Requester;
 use flux_sdk::{
     data_request::{ DataRequest, Source },
     config::OracleConfig,
+    requester::Requester,
 };
 
 #[near_bindgen]

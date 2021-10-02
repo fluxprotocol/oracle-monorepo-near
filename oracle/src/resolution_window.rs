@@ -1,27 +1,20 @@
-use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
 use near_sdk::{ Balance, AccountId };
 use near_sdk::collections::{ LookupMap };
 
 use flux_sdk::outcome::Outcome;
-use flux_sdk::types::Timestamp;
-use flux_sdk::resolution_window::{ CorrectStake, WindowStakeResult };
+use flux_sdk::resolution_window::{ ResolutionWindow, CorrectStake, WindowStakeResult };
 
 use crate::logger;
 
-#[derive(BorshSerialize, BorshDeserialize)]
-pub struct ResolutionWindow {
-    pub dr_id: u64,
-    pub round: u16,
-    pub start_time: Timestamp,
-    pub end_time: Timestamp,
-    pub bond_size: Balance,
-    pub outcome_to_stake: LookupMap<Outcome, Balance>,
-    pub user_to_outcome_to_stake: LookupMap<AccountId, LookupMap<Outcome, Balance>>,
-    pub bonded_outcome: Option<Outcome>,
+pub trait ResolutionWindowHandler {
+    fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64, start_time: u64) -> Self;
+    fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
+    fn unstake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
+    fn claim_for(&mut self, account_id: AccountId, final_outcome: &Outcome) -> WindowStakeResult;
 }
 
-impl ResolutionWindow {
-    pub fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64, start_time: u64) -> Self {
+impl ResolutionWindowHandler for ResolutionWindow {
+    fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64, start_time: u64) -> Self {
         let new_resolution_window = Self {
             dr_id,
             round,
@@ -38,7 +31,7 @@ impl ResolutionWindow {
     }
 
     // @returns amount to refund users because it was not staked
-    pub fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
+    fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
         let stake_on_outcome = self.outcome_to_stake.get(&outcome).unwrap_or(0);
         let mut user_to_outcomes = self.user_to_outcome_to_stake
             .get(&sender)
@@ -75,7 +68,7 @@ impl ResolutionWindow {
     }
 
     // @returns amount to refund users because it was not staked
-    pub fn unstake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
+    fn unstake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
         assert!(self.bonded_outcome.is_none() || self.bonded_outcome.as_ref().unwrap() != &outcome, "Cannot withdraw from bonded outcome");
         let mut user_to_outcomes = self.user_to_outcome_to_stake
             .get(&sender)
@@ -98,7 +91,7 @@ impl ResolutionWindow {
         amount
     }
 
-    pub fn claim_for(&mut self, account_id: AccountId, final_outcome: &Outcome) -> WindowStakeResult {
+    fn claim_for(&mut self, account_id: AccountId, final_outcome: &Outcome) -> WindowStakeResult {
         // Check if there is a bonded outcome, if there is none it means it can be ignored in payout calc since it can only be the final unsuccessful window
         match &self.bonded_outcome {
             Some(bonded_outcome) => {
