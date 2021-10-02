@@ -1,9 +1,12 @@
-use near_sdk::{ Balance, AccountId };
-use near_sdk::collections::{ LookupMap };
-
-use flux_sdk::outcome::Outcome;
-use flux_sdk::resolution_window::{ ResolutionWindow, CorrectStake, WindowStakeResult };
-
+use near_sdk::{
+    Balance,
+    AccountId,
+    collections::LookupMap
+};
+use flux_sdk::{
+    outcome::Outcome,
+    resolution_window::{ ResolutionWindow, CorrectStake, WindowStakeResult }
+};
 use crate::logger;
 
 pub trait ResolutionWindowHandler {

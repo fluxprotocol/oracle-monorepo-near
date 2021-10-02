@@ -1,9 +1,14 @@
 #![allow(clippy::too_many_arguments)]
 
-use near_sdk::{ AccountId, Balance, env, near_bindgen };
-use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
-use near_sdk::collections::{ Vector, LookupMap };
-use near_sdk::json_types::{ U64, U128 };
+use near_sdk::{
+    AccountId,
+    Balance, 
+    env,
+    near_bindgen,
+    borsh::{ self, BorshDeserialize, BorshSerialize },
+    collections::{ Vector, LookupMap },
+    json_types::U128
+};
 
 near_sdk::setup_alloc!();
 
@@ -27,7 +32,7 @@ pub use callback_args::*;
 
 use storage_manager::AccountStorageBalance;
 use flux_sdk::{
-    data_request::{ DataRequest, Source },
+    data_request::DataRequest,
     config::OracleConfig,
     requester::Requester,
 };

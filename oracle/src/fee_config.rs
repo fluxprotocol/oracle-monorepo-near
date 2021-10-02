@@ -1,6 +1,8 @@
 use crate::*;
-use flux_sdk::config::FeeConfig;
-use flux_sdk::consts::MAX_RESOLUTION_FEE_PERCENTAGE;
+use flux_sdk::{
+    config::FeeConfig,
+    consts::MAX_RESOLUTION_FEE_PERCENTAGE
+};
 
 #[near_bindgen]
 impl Contract {

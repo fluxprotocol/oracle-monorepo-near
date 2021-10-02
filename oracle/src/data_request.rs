@@ -1,19 +1,28 @@
 use crate::*;
 
-use near_sdk::json_types::{ U64, U128 };
-use near_sdk::{ env, Balance, AccountId, PromiseOrValue, Promise, ext_contract };
-use near_sdk::collections::Vector;
-
-use crate::helpers::multiply_stake;
-use crate::logger;
-use crate::fungible_token::fungible_token_transfer;
-use crate::resolution_window::ResolutionWindowHandler;
-use crate::requester_handler::RequesterHandler;
-
-use flux_sdk::data_request::{ NewDataRequestArgs, ClaimRes, DataRequestConfig, DataRequestSummary, DataRequestDataType, DataRequestConfigSummary, StakeDataRequestArgs };
-use flux_sdk::outcome::{ AnswerType, Outcome };
-use flux_sdk::types::WrappedBalance;
-use flux_sdk::resolution_window::{ WindowStakeResult, ResolutionWindowSummary };
+use near_sdk::{ 
+    json_types::{ U64, U128 },
+    collections::Vector,
+    AccountId,
+    Balance,
+    PromiseOrValue,
+    Promise,
+    env,
+    ext_contract
+};
+use flux_sdk::{
+    data_request::{ NewDataRequestArgs, ClaimRes, DataRequestConfig, DataRequestSummary, DataRequestDataType, DataRequestConfigSummary, StakeDataRequestArgs },
+    resolution_window::{ WindowStakeResult, ResolutionWindowSummary },
+    outcome::{ AnswerType, Outcome },
+    types::WrappedBalance
+};
+use crate::{
+    helpers::multiply_stake,
+    logger,
+    fungible_token::fungible_token_transfer,
+    resolution_window::ResolutionWindowHandler,
+    requester_handler::RequesterHandler
+};
 
 pub const FINALIZATION_GAS: u64 = 250_000_000_000_000;
 
