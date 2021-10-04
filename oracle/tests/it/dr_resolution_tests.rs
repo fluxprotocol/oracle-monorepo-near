@@ -1,5 +1,8 @@
 use crate::utils::*;
-use oracle::data_request::PERCENTAGE_DIVISOR;
+use flux_sdk::{
+    outcome::{ AnswerType, Outcome },
+    consts::PERCENTAGE_DIVISOR
+};
 
 #[test]
 fn dr_claim_flow() {
