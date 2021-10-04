@@ -38,9 +38,12 @@ impl Contract {
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
-    use near_sdk::json_types::U128;
+    use near_sdk::{
+        json_types::{ U64, U128 },
+        MockedBlockchain,
+        testing_env,
+        VMContext 
+    };
     use super::*;
 
     fn alice() -> AccountId {
@@ -59,8 +62,8 @@ mod mock_token_basic_tests {
         "gov.near".to_string()
     }
 
-    fn config(gov: AccountId) -> oracle_config::OracleConfig {
-        oracle_config::OracleConfig {
+    fn config(gov: AccountId) -> OracleConfig {
+        OracleConfig {
             gov,
             final_arbitrator: alice(),
             payment_token: token(),
