@@ -31,8 +31,12 @@ impl Contract {
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
+    use near_sdk::{
+        json_types::U64,
+        MockedBlockchain,
+        testing_env,
+        VMContext
+    };
     use super::*;
     use flux_sdk::config::FeeConfig;
     
