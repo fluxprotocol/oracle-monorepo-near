@@ -1,7 +1,8 @@
 use crate::utils::*;
-use oracle::oracle_config::OracleConfig;
-use oracle::{Requester};
-use oracle::fee_config::FeeConfig;
+use flux_sdk::{
+    config::{ OracleConfig, FeeConfig },
+    requester::Requester
+};
 
 pub struct OracleUtils {
     pub contract: ContractAccount<OracleContract>

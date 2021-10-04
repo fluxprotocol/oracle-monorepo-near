@@ -1,4 +1,5 @@
 use crate::utils::*;
+use flux_sdk::outcome::{ AnswerType, Outcome };
 
 // Scenario: Bob stakes correctly and Carol takes turns (incorrectly) disputing
 // until the final arbitrator is invoked and Alice must finalize
