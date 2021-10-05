@@ -32,6 +32,11 @@ pub enum DataRequestDataType {
     String,
 }
 
+pub enum DataRequestStatus {
+    Active(DataRequest),
+    Finalized(FinalizedDataRequest)
+}
+
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct DataRequest {
     pub id: u64,
@@ -40,7 +45,7 @@ pub struct DataRequest {
     pub outcomes: Option<Vec<String>>,
     pub requester: Requester, // requester contract
     pub creator: AccountId, // Account to return the validity bond to
-    pub finalized_outcome: Option<Outcome>, // TODO: Remove?
+    pub finalized_outcome: Option<Outcome>,
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
     pub request_config: DataRequestConfig, // Config enforced by global parameters
@@ -56,9 +61,7 @@ pub struct FinalizedDataRequest{
     pub finalized_outcome: Outcome,
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
-    pub request_config: DataRequestConfig, // Config enforced by global parameters
-    pub initial_challenge_period: Duration, // challenge period for first resolution
-    pub final_arbitrator_triggered: bool,
+    pub paid_fee: u128,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -607,6 +610,22 @@ impl Contract {
         (i..std::cmp::min(i + u64::from(limit), self.data_requests.len()))
             .map(|index| self.data_requests.get(index).unwrap().summarize_dr())
             .collect()
+    }
+}
+
+impl Contract {
+    /**
+     * @notice Transforms a data request struct into another struct with Serde serialization
+     */
+    fn trim_dr(&self, dr: DataRequest, finalized_outcome: Outcome) -> FinalizedDataRequest {        
+        // format data request
+        FinalizedDataRequest {
+            id: dr.id,
+            finalized_outcome: finalized_outcome,
+            resolution_windows: dr.resolution_windows,
+            global_config_id: dr.global_config_id,
+            paid_fee: dr.request_config.paid_fee,
+        }
     }
 }
 
