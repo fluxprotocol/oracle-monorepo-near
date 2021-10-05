@@ -40,7 +40,7 @@ pub struct DataRequest {
     pub outcomes: Option<Vec<String>>,
     pub requester: Requester, // requester contract
     pub creator: AccountId, // Account to return the validity bond to
-    pub finalized_outcome: Option<Outcome>,
+    pub finalized_outcome: Option<Outcome>, // TODO: Remove?
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
     pub request_config: DataRequestConfig, // Config enforced by global parameters
@@ -48,6 +48,17 @@ pub struct DataRequest {
     pub final_arbitrator_triggered: bool,
     pub tags: Vec<String>,
     pub data_type: DataRequestDataType,
+}
+
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct FinalizedDataRequest{
+    pub id: u64,
+    pub finalized_outcome: Outcome,
+    pub resolution_windows: Vector<ResolutionWindow>,
+    pub global_config_id: u64, // Config id
+    pub request_config: DataRequestConfig, // Config enforced by global parameters
+    pub initial_challenge_period: Duration, // challenge period for first resolution
+    pub final_arbitrator_triggered: bool,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
