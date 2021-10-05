@@ -551,6 +551,22 @@ impl Contract {
     }
 }
 
+impl Contract {
+    /**
+     * @notice Transforms a data request struct into another struct with Serde serialization
+     */
+    fn trim_dr(&self, dr: DataRequest, finalized_outcome: Outcome) -> FinalizedDataRequest {        
+        // format data request
+        FinalizedDataRequest {
+            id: dr.id,
+            finalized_outcome: finalized_outcome,
+            resolution_windows: dr.resolution_windows,
+            global_config_id: dr.global_config_id,
+            paid_fee: dr.request_config.paid_fee,
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
