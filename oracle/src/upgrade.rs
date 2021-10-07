@@ -1,5 +1,4 @@
 use crate::*;
-use near_sdk::{ init };
 
 #[cfg(target_arch = "wasm32")]
 mod upgrade {
@@ -58,6 +57,7 @@ mod upgrade {
     }
 }
 
+#[near_bindgen]
 impl Contract {
     #[init(ignore_state)]
     pub fn migrate() -> Self {
