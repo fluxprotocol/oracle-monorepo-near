@@ -32,10 +32,10 @@ fn dr_claim_flow() {
     
     init_res.bob.ft_transfer(&REQUESTER_CONTRACT_ID, 1_000_000);
     init_res.alice.finalize(0);
-    // init_res.alice.claim(0);
+    init_res.alice.claim(0);
     
-    // let post_claim_balance_alice = init_res.alice.get_token_balance(None);
-    // assert_eq!(post_claim_balance_alice, init_balance_alice);
+    let post_claim_balance_alice = init_res.alice.get_token_balance(None);
+    assert_eq!(post_claim_balance_alice, init_balance_alice - validity_bond); // expect initial balance - validity bond since refunds are handled by requester contract
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn dr_fixed_fee_flow() {
     init_res.alice.claim(0);
     
     let post_claim_balance_alice = init_res.alice.get_token_balance(None);
-    assert_eq!(post_claim_balance_alice, init_balance_alice);
+    assert_eq!(post_claim_balance_alice, init_balance_alice - 1); // expect initial balance - validity bond since refunds are handled by requester contract
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn dr_multiplier_flow() {
         validity_bond: 1,
         final_arbitrator_invoke_amount: 2500
     }));
-        let init_balance_alice = init_res.alice.get_token_balance(None);
+    let init_balance_alice = init_res.alice.get_token_balance(None);
 
     let _res = init_res.alice.dr_new(100, Some(1));
     let _post_new_balance_oracle = init_res.alice.get_token_balance(Some(ORACLE_CONTRACT_ID.to_string()));
@@ -111,5 +111,5 @@ fn dr_multiplier_flow() {
     init_res.alice.claim(0);
     
     let post_claim_balance_alice = init_res.alice.get_token_balance(None);
-    assert_eq!(post_claim_balance_alice, init_balance_alice);
+    assert_eq!(post_claim_balance_alice, init_balance_alice - 1); // expect initial balance - validity bond since refunds are handled by requester contract
 }
