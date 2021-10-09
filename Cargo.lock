@@ -959,6 +959,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "flux-sdk"
+version = "0.1.0"
+source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=4331a496fd9e527082fd351dc6068466b3471a0f#4331a496fd9e527082fd351dc6068466b3471a0f"
+dependencies = [
+ "near-sdk",
+ "serde",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2424,6 +2433,7 @@ dependencies = [
 name = "request-interface"
 version = "0.1.0"
 dependencies = [
+ "flux-sdk",
  "near-sdk",
  "serde",
 ]
