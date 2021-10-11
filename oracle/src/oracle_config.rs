@@ -5,7 +5,7 @@ use flux_sdk::config::OracleConfig;
 #[near_bindgen]
 impl Contract {
     pub fn get_config(&self) -> OracleConfig {
-        self.configs.iter().last().unwrap()
+        self.configs.get(self.configs.len() - 1).unwrap()
     }
 
     #[payable]

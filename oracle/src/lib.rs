@@ -74,7 +74,7 @@ impl Contract {
 
 impl Contract {
     pub fn assert_gov(&self) {
-        let config = self.configs.iter().last().unwrap();
+        let config = self.configs.get(self.configs.len() - 1).unwrap();
         assert_eq!(
             config.gov,
             env::predecessor_account_id(),
