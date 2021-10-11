@@ -1,8 +1,11 @@
 use crate::*;
-
-use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
-use near_sdk::AccountId;
-use near_sdk::collections::LookupMap;
+use crate::requester_handler::RequesterHandler;
+use near_sdk::{
+    borsh::{ self, BorshDeserialize, BorshSerialize },
+    AccountId,
+    collections::LookupMap
+};
+use flux_sdk::requester::Requester;
    
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct Whitelist(Option<LookupMap<AccountId, Requester>>); // maps requester account id to requesters config
@@ -45,7 +48,7 @@ impl Whitelist {
             Some(whitelist) => {
                 whitelist.get(requester).expect("requester not whitelisted")
             }, 
-            None => Requester::new_no_whitelist(requester)
+            None => RequesterHandler::new_no_whitelist(requester)
         }
     }
 }
@@ -128,9 +131,13 @@ impl Contract {
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
-    use fee_config::FeeConfig;
+    use near_sdk::{
+        json_types::U64,
+        MockedBlockchain,
+        testing_env,
+        VMContext
+    };
+    use flux_sdk::config::FeeConfig;
     use super::*;
 
     fn alice() -> AccountId {
@@ -162,8 +169,8 @@ mod mock_token_basic_tests {
         }
     }
 
-    fn config() -> oracle_config::OracleConfig {
-        oracle_config::OracleConfig {
+    fn config() -> OracleConfig {
+        OracleConfig {
             gov: gov(),
             final_arbitrator: alice(),
             payment_token: token(),

@@ -9,7 +9,6 @@ use near_sdk::{
     serde_json::json,
     // serde_json
 };
-
 pub use near_sdk_sim::{
     ExecutionResult,
     deploy, 
@@ -18,6 +17,10 @@ pub use near_sdk_sim::{
     ContractAccount, 
     UserAccount, 
     DEFAULT_GAS
+};
+use flux_sdk::{
+    consts::PERCENTAGE_DIVISOR,
+    outcome::Outcome,
 };
 mod account_utils;
 mod oracle_utils;
@@ -28,12 +31,10 @@ mod deposit;
 // pub use account_utils::*;
 extern crate oracle;
 pub use oracle::*;
-pub use types::*;
 pub use account_utils::*;
 use deposit::*;
 use request_interface;
 use token;
-use oracle::data_request::PERCENTAGE_DIVISOR;
 use uint::construct_uint;
 
 construct_uint! {

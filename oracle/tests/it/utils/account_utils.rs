@@ -1,6 +1,7 @@
 use crate::utils::*;
-use oracle::data_request::DataRequestDataType;
-use oracle::types::*;
+use flux_sdk::{
+    data_request::{ NewDataRequestArgs, DataRequestDataType }
+};
 pub fn init_balance() -> u128 {
     to_yocto("100000")
 }
@@ -95,13 +96,12 @@ impl TestAccount {
             json!({
                 "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),
                 "payload": NewDataRequestArgs {
-                    sources: vec![],
+                    sources: Some(vec![]),
                     tags: vec!["1".to_string()],
                     description: Some("test description".to_string()),
                     outcomes: None,
                     challenge_period: U64(1000),
                     data_type: DataRequestDataType::String,
-                    creator: self.account.account_id(),
                 }
             }).to_string().as_bytes(),
             DEFAULT_GAS,

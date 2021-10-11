@@ -1,8 +1,13 @@
 use crate::*;
-
-use near_sdk::serde::{ Serialize, Deserialize };
-use near_sdk::serde_json;
-use near_sdk::PromiseOrValue;
+use near_sdk::{
+    serde::{ Serialize, Deserialize },
+    serde_json,
+    PromiseOrValue
+};
+use flux_sdk::{
+    data_request::{ NewDataRequestArgs, StakeDataRequestArgs },
+    types::WrappedBalance
+};
 
 #[derive(Serialize, Deserialize)]
 pub enum Payload {
@@ -44,12 +49,18 @@ impl FungibleTokenReceiver for Contract {
 mod mock_token_basic_tests {
     use super::*;
     use std::convert::TryInto;
-    use near_sdk::json_types::ValidAccountId;
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
+    use near_sdk::{
+        json_types::{ ValidAccountId, U64 },
+        MockedBlockchain,
+        testing_env,
+        VMContext
+    };
+    use flux_sdk::{
+        config::{ OracleConfig, FeeConfig },
+        outcome::{ AnswerType, Outcome },
+        data_request::{ NewDataRequestArgs, DataRequestDataType },
+    };
     use crate::storage_manager::StorageManager;
-
-    use fee_config::FeeConfig;
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -84,8 +95,8 @@ mod mock_token_basic_tests {
         }
     }
 
-    fn config() -> oracle_config::OracleConfig {
-        oracle_config::OracleConfig {
+    fn config() -> OracleConfig {
+        OracleConfig {
             gov: gov(),
             final_arbitrator: alice(),
             payment_token: token(),
@@ -132,13 +143,12 @@ mod mock_token_basic_tests {
         let mut contract = Contract::new(whitelist, config());
 
         contract.dr_new(bob(), 5, NewDataRequestArgs{
-            sources: Vec::new(),
+            sources: Some(Vec::new()),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
-            data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
+            data_type: DataRequestDataType::String,
         });
 
         let msg = serde_json::json!({
@@ -157,13 +167,12 @@ mod mock_token_basic_tests {
         let mut contract = Contract::new(whitelist, config());
 
         contract.dr_new(bob(), 5, NewDataRequestArgs{
-            sources: Vec::new(),
+            sources: Some(Vec::new()),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
             challenge_period: U64(1500),
             description: Some("a".to_string()),
             tags: vec!["1".to_string()],
-            data_type: data_request::DataRequestDataType::String,
-            creator: bob(),
+            data_type: DataRequestDataType::String,
         });
 
         let storage_start = 10u128.pow(24);

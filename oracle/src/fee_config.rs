@@ -1,17 +1,8 @@
 use crate::*;
-use near_sdk::serde::{ Deserialize, Serialize };
-
-const MAX_RESOLUTION_FEE_PERCENTAGE: u32 = 5000; // 5% in 1e5
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-pub struct FeeConfig {
-    // total market cap of FLUX/stake_token denominated in payment_token
-    pub flux_market_cap: U128,
-    // total value staked (TVS) of all request interfaces; denominated in payment_token
-    pub total_value_staked: U128,
-    // global percentage of TVS to pay out to resolutors; denominated in 1e5 so 1 = 0.001%, 100000 = 100%
-    pub resolution_fee_percentage: u32,
-}
+use flux_sdk::{
+    config::FeeConfig,
+    consts::MAX_RESOLUTION_FEE_PERCENTAGE
+};
 
 #[near_bindgen]
 impl Contract {
@@ -47,9 +38,12 @@ impl Contract {
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
-    use near_sdk::json_types::U128;
+    use near_sdk::{
+        json_types::{ U64, U128 },
+        MockedBlockchain,
+        testing_env,
+        VMContext 
+    };
     use super::*;
 
     fn alice() -> AccountId {
@@ -68,8 +62,8 @@ mod mock_token_basic_tests {
         "gov.near".to_string()
     }
 
-    fn config(gov: AccountId) -> oracle_config::OracleConfig {
-        oracle_config::OracleConfig {
+    fn config(gov: AccountId) -> OracleConfig {
+        OracleConfig {
             gov,
             final_arbitrator: alice(),
             payment_token: token(),

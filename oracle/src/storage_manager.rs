@@ -140,9 +140,13 @@ impl Contract {
 mod mock_token_basic_tests {
     use super::*;
     use std::convert::TryInto;
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
-    use fee_config::FeeConfig;
+    use near_sdk::{ 
+        json_types::U64,
+        MockedBlockchain,
+        testing_env,
+        VMContext 
+    };
+    use flux_sdk::config::{ OracleConfig, FeeConfig };
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -181,8 +185,8 @@ mod mock_token_basic_tests {
         }
     }
 
-    fn config() -> oracle_config::OracleConfig {
-        oracle_config::OracleConfig {
+    fn config() -> OracleConfig {
+        OracleConfig {
             gov: gov(),
             final_arbitrator: alice(),
             payment_token: token(),

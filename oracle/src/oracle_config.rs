@@ -1,23 +1,6 @@
 use crate::*;
-use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
-use near_sdk::serde::{ Serialize, Deserialize };
-use near_sdk::{ AccountId };
-use fee_config::FeeConfig;
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct OracleConfig {
-    pub gov: AccountId,
-    pub final_arbitrator: AccountId, // Invoked to have last say in `DataRequest`, this happens when the `challenge_bond` for a `DataRequest` is >= than `final_arbitrator_invoke_amount` / 100 % of the total supply
-    pub stake_token: AccountId,
-    pub payment_token: AccountId,
-    pub validity_bond: U128,
-    pub max_outcomes: u8,
-    pub default_challenge_window_duration: WrappedTimestamp,
-    pub min_initial_challenge_window_duration: WrappedTimestamp,
-    pub final_arbitrator_invoke_amount: U128, // Amount of tokens that, when bonded in a single `ResolutionWindow`, should trigger the final arbitrator
-    pub fee: FeeConfig,
-}
+use near_sdk::AccountId;
+use flux_sdk::config::OracleConfig;
 
 #[near_bindgen]
 impl Contract {
@@ -48,10 +31,14 @@ impl Contract {
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
-    use near_sdk::{ MockedBlockchain };
-    use near_sdk::{ testing_env, VMContext };
-    use fee_config::FeeConfig;
+    use near_sdk::{
+        json_types::U64,
+        MockedBlockchain,
+        testing_env,
+        VMContext
+    };
     use super::*;
+    use flux_sdk::config::FeeConfig;
     
     fn alice() -> AccountId {
         "alice.near".to_string()
