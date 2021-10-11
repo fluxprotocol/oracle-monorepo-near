@@ -5,11 +5,15 @@ use flux_sdk::config::OracleConfig;
 #[near_bindgen]
 impl Contract {
     pub fn get_config(&self) -> OracleConfig {
+        // AUDIT: change to len() - 1
+        // self.configs.get(self.configs.len() - 1).unwrap()
         self.configs.iter().last().unwrap()
     }
 
     #[payable]
     pub fn set_config(&mut self, new_config: OracleConfig) {
+        // AUDIT: Validate account IDs and other data from the config.
+        // SOLUTION: Find out what other configurations need to be set and add assertions
         self.assert_gov();
                 
         let initial_storage = env::storage_usage();
