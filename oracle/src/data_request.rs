@@ -20,7 +20,7 @@ use flux_sdk::{
         DataRequestConfig,
         ClaimRes,
     },
-    resolution_window::{ WindowStakeResult, ResolutionWindowSummary },
+    resolution_window::{ WindowStakeResult, ResolutionWindowSummary, ResolutionWindow },
     outcome::{ AnswerType, Outcome },
     types::WrappedBalance
 };
@@ -92,12 +92,10 @@ impl DataRequestChange for DataRequest {
         outcome: Outcome,
         amount: Balance
     ) -> Balance {
-        let mut window = self.resolution_windows
-            .iter()
-            .last()
-            .unwrap_or_else( || {
-                ResolutionWindowHandler::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp())
-            });
+        let mut window : ResolutionWindow = match self.resolution_windows.len() {
+            0 => ResolutionWindowHandler::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp()),
+            _ => self.resolution_windows.get(self.resolution_windows.len() - 1).unwrap()
+        };
         
         let unspent = window.stake(sender, outcome, amount);
 
@@ -313,7 +311,7 @@ impl DataRequestView for DataRequest {
     }
 
     fn get_final_outcome(&self) -> Option<Outcome> {
-        assert!(self.resolution_windows.iter().count() >= 2, "No bonded outcome found or final arbitrator triggered after first round");
+        assert!(self.resolution_windows.len() >= 2, "No bonded outcome found or final arbitrator triggered after first round");
         let last_bonded_window_i = self.resolution_windows.len() - 2; // Last window after end_time never has a bonded outcome
         let last_bonded_window = self.resolution_windows.get(last_bonded_window_i).unwrap();
         last_bonded_window.bonded_outcome
