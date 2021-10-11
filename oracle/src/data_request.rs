@@ -157,6 +157,10 @@ impl DataRequestChange for DataRequest {
         let mut user_correct_stake = 0;
 
         // For any round after the resolution round handle generically
+        // AUDIT: This may run out gas, if the number of windows is too large, because you iterate
+        //     through all windows.
+        // SOLUTION: See if more expensive to iterate through resolution windows than it is to
+        // store aggregate of amount of stake for each user alongside resolution windows and amount they have staked in
         for round in 0..self.resolution_windows.len() {
             let mut window = self.resolution_windows.get(round).unwrap();
             let stake_state: WindowStakeResult = window.claim_for(account_id.to_string(), self.finalized_outcome.as_ref().unwrap());
@@ -256,6 +260,9 @@ impl DataRequestView for DataRequest {
         }
     }
 
+    // AUDIT: Why -2?
+    // If proposed outcome is the same as the bonded outcome two resolution windows ago, it is not able to be used
+    // Why not previous resolution window?
     fn assert_can_stake_on_outcome(&self, outcome: &Outcome) {
         if self.resolution_windows.len() > 1 {
             let last_window = self.resolution_windows.get(self.resolution_windows.len() - 2).unwrap();
@@ -406,6 +413,8 @@ impl Contract {
         0
     }
 
+    // AUDIT: `dr_stake` doesn't handle storage, but `dr_unstake` does. Make it consistent.
+    // SOLUTION: handle storage here
     #[payable]
     pub fn dr_stake(&mut self, sender: AccountId, amount: Balance, payload: StakeDataRequestArgs) -> PromiseOrValue<WrappedBalance> {
         let mut dr = self.dr_get_expect(payload.id.into());

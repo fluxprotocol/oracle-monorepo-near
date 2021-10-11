@@ -59,6 +59,7 @@ mod upgrade {
 
 #[near_bindgen]
 impl Contract {
+    // AUDIT: Mark it `#[private]`
     #[init(ignore_state)]
     pub fn migrate() -> Self {
         let contract: Contract = env::state_read().expect("ERR_NOT_INITIALIZED");

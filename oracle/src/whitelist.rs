@@ -27,6 +27,7 @@ impl Whitelist {
         }
     }
 
+    // AUDIT: Switch to `contains_key`
     pub fn contains(&self, requester: AccountId) -> bool {
         match self.0.as_ref().expect("No whitelist initiated").get(&requester) {
             None => false,
@@ -94,7 +95,7 @@ impl WhitelistHandler for Contract {
         self.assert_gov();
 
         let initial_storage = env::storage_usage();
-
+        // AUDIT: Should this be after `.remove()`
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
         logger::log_whitelist(&requester, false);
 

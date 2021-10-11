@@ -10,6 +10,8 @@ impl Contract {
 
     #[payable]
     pub fn set_config(&mut self, new_config: OracleConfig) {
+        // AUDIT: Validate account IDs and other data from the config.
+        // SOLUTION: Find out what other configurations need to be set and add assertions
         self.assert_gov();
                 
         let initial_storage = env::storage_usage();
