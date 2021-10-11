@@ -36,6 +36,10 @@ impl ResolutionWindowHandler for ResolutionWindow {
     // @returns amount to refund users because it was not staked
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
         let stake_on_outcome = self.outcome_to_stake.get(&outcome).unwrap_or(0);
+        // AUDIT: No point of storing lookup maps, since they don't have a state except for the
+        //     `prefix`. You can always create a new lookup map, as it's done in `unwrap_or_else`
+        //     and old data will be there.
+        // SOLUTION: store in alternative way
         let mut user_to_outcomes = self.user_to_outcome_to_stake
             .get(&sender)
             .unwrap_or(LookupMap::new(format!("utots:{}:{}:{}", self.dr_id, self.round, sender).as_bytes().to_vec()));
@@ -73,6 +77,7 @@ impl ResolutionWindowHandler for ResolutionWindow {
     // @returns amount to refund users because it was not staked
     fn unstake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
         assert!(self.bonded_outcome.is_none() || self.bonded_outcome.as_ref().unwrap() != &outcome, "Cannot withdraw from bonded outcome");
+        // AUDIT: Refactor this to a separate method to avoid duplication of initialization.
         let mut user_to_outcomes = self.user_to_outcome_to_stake
             .get(&sender)
             .unwrap_or(LookupMap::new(format!("utots:{}:{}:{}", self.dr_id, self.round, sender).as_bytes().to_vec()));
