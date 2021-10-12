@@ -11,14 +11,19 @@ use near_sdk::{
     ext_contract
 };
 use flux_sdk::{
+    config::OracleConfig,
     data_request::{
         DataRequestConfigSummary,
         StakeDataRequestArgs,
         DataRequestDataType,
         NewDataRequestArgs,
         DataRequestSummary,
+        ActiveDataRequestSummary,
+        FinalizedDataRequestSummary,
         DataRequestConfig,
         ClaimRes,
+        ActiveDataRequest,
+        FinalizedDataRequest,
     },
     resolution_window::{ WindowStakeResult, ResolutionWindowSummary, ResolutionWindow },
     outcome::{ AnswerType, Outcome },
@@ -39,18 +44,59 @@ trait ExtSelf {
     fn dr_proceed_finalization(request_id: U64, sender: AccountId);
 }
 
-trait DataRequestChange {
-    fn new(requester: Requester, id: u64, global_config_id: u64, global_config: &OracleConfig, paid_fee: Balance, request_data: NewDataRequestArgs) -> Self;
-    fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
+trait DataRequestMethods {
     fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance;
-    fn finalize(&mut self);
-    fn invoke_final_arbitrator(&mut self, bond_size: Balance) -> bool;
-    fn finalize_final_arbitrator(&mut self, outcome: Outcome);
-    fn claim(&mut self, account_id: String) -> ClaimRes;
-    fn return_validity_bond(&self, token: AccountId) -> PromiseOrValue<bool>;
+    fn get_config_id(&self) -> u64;
+    fn log_update(&self);
+    fn summarize(&self) -> DataRequestSummary;
 }
 
-impl DataRequestChange for DataRequest {
+impl DataRequestMethods for DataRequest {
+    // @returns amount of tokens that didn't get staked
+    fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance {        
+        let mut resolution_windows = match self {
+            DataRequest::Active(dr) => dr.resolution_windows,
+            DataRequest::Finalized(dr) => dr.resolution_windows
+        };
+
+        let mut window = resolution_windows
+            .get(round as u64)
+            .expect("ERR_NO_RESOLUTION_WINDOW");
+
+        window.unstake(sender, outcome, amount)
+    }
+
+    fn get_config_id(&self) -> u64 {
+        match self {
+            DataRequest::Active(dr) => dr.global_config_id,
+            DataRequest::Finalized(dr) => dr.global_config_id
+        }
+    }
+
+    fn log_update(&self) {
+        match self {
+            DataRequest::Active(dr) => logger::log_update_active_data_request(&dr),
+            DataRequest::Finalized(dr) => logger::log_update_finalized_data_request(&dr)
+        }
+    }
+
+    fn summarize(&self) -> DataRequestSummary {
+        match self {
+            DataRequest::Active(d) => DataRequestSummary::Active(d.summarize_dr()),
+            DataRequest::Finalized(d) => DataRequestSummary::Finalized(d.summarize_dr())
+        }
+    }
+    
+}
+
+trait ActiveDataRequestChange {
+    fn new(requester: Requester, id: u64, global_config_id: u64, global_config: &OracleConfig, paid_fee: Balance, request_data: NewDataRequestArgs) -> Self;
+    fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
+    fn invoke_final_arbitrator(&mut self, bond_size: Balance) -> bool;
+    fn get_final_outcome(&self) -> Outcome;
+}
+
+impl ActiveDataRequestChange for ActiveDataRequest {
     fn new(
         requester: Requester,
         id: u64,
@@ -67,7 +113,6 @@ impl DataRequestChange for DataRequest {
             sources: request_data.sources.unwrap(),
             outcomes: request_data.outcomes,
             requester: requester.clone(),
-            finalized_outcome: None,
             resolution_windows,
             global_config_id,
             request_config: DataRequestConfig {
@@ -126,28 +171,72 @@ impl DataRequestChange for DataRequest {
         unspent
     }
 
-    // @returns amount of tokens that didn't get staked
-    fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance {        
-        let mut window = self.resolution_windows
-            .get(round as u64)
-            .expect("ERR_NO_RESOLUTION_WINDOW");
-
-        window.unstake(sender, outcome, amount)
-    }
-
-    fn finalize(&mut self) {
-        self.finalized_outcome = self.get_final_outcome();
-    }
-
+     
+    
     // @returns wether final arbitrator was triggered
     fn invoke_final_arbitrator(&mut self, bond_size: Balance) -> bool {
         let should_invoke = bond_size >= self.request_config.final_arbitrator_invoke_amount;
         if should_invoke { self.final_arbitrator_triggered = true }
         self.final_arbitrator_triggered
     }
+    
+    fn get_final_outcome(&self) -> Outcome {
+        assert!(self.resolution_windows.iter().count() >= 2, "No bonded outcome found or final arbitrator triggered after first round");
+        let last_bonded_window_i = self.resolution_windows.len() - 2; // Last window after end_time never has a bonded outcome
+        let last_bonded_window = self.resolution_windows.get(last_bonded_window_i).unwrap();
+        last_bonded_window.bonded_outcome.expect("Error, no final outcome")
+    }
+}
 
-    fn finalize_final_arbitrator(&mut self, outcome: Outcome) {
-        self.finalized_outcome = Some(outcome);
+trait FinalizedDataRequestMethods {
+    fn claim(&mut self, account_id: String) -> ClaimRes;
+    fn summarize_dr(&self) -> FinalizedDataRequestSummary;
+    fn finalize(&mut self, final_outcome: Outcome);
+    fn return_validity_bond(&self, token: AccountId, requester: AccountId, validity_bond: u128) -> PromiseOrValue<bool>;
+}
+
+impl FinalizedDataRequestMethods for FinalizedDataRequest {
+
+        /**
+     * @notice Transforms a data request struct into another struct with Serde serialization
+     */
+    fn summarize_dr(&self) -> FinalizedDataRequestSummary {
+        // format resolution windows inside this data request
+        let mut resolution_windows = Vec::new();
+        for i in self.resolution_windows.iter() {
+            let rw = ResolutionWindowSummary {
+                round: i.round,
+                start_time: U64(i.start_time),
+                end_time: U64(i.end_time),
+                bond_size: U128(i.bond_size),
+                bonded_outcome: i.bonded_outcome,
+            };
+            resolution_windows.push(rw);
+        }
+
+        // format data request
+        FinalizedDataRequestSummary {
+            id: self.id.into(),
+            finalized_outcome: self.finalized_outcome,
+            resolution_windows: resolution_windows,
+            global_config_id: U64(self.global_config_id),
+            paid_fee: U128(self.paid_fee),
+        }
+    }
+
+    fn finalize(&mut self, final_outcome: Outcome) {
+        self.finalized_outcome = final_outcome;
+    }
+
+    // @notice Return what's left of validity_bond to requester
+    fn return_validity_bond(&self, token: AccountId, requester: AccountId, validity_bond: u128) -> PromiseOrValue<bool> {
+        match self.finalized_outcome {
+            Outcome::Answer(_) => {
+                PromiseOrValue::Promise(fungible_token_transfer(token, requester, validity_bond))
+            },
+            Outcome::Invalid => PromiseOrValue::Value(false)
+
+        }
     }
 
     fn claim(&mut self, account_id: String) -> ClaimRes {
@@ -163,7 +252,7 @@ impl DataRequestChange for DataRequest {
         // store aggregate of amount of stake for each user alongside resolution windows and amount they have staked in
         for round in 0..self.resolution_windows.len() {
             let mut window = self.resolution_windows.get(round).unwrap();
-            let stake_state: WindowStakeResult = window.claim_for(account_id.to_string(), self.finalized_outcome.as_ref().unwrap());
+            let stake_state: WindowStakeResult = window.claim_for(account_id.to_string(), &self.finalized_outcome);
             match stake_state {
                 WindowStakeResult::Correct(correctly_staked) => {
                     total_correct_staked += correctly_staked.bonded_stake;
@@ -186,7 +275,7 @@ impl DataRequestChange for DataRequest {
 
         let fee_profit = match total_correct_staked {
             0 => 0,
-            _ => helpers::calc_product(user_correct_stake, self.request_config.paid_fee, total_correct_staked)
+            _ => helpers::calc_product(user_correct_stake, self.paid_fee, total_correct_staked)
         };
 
         logger::log_claim(&account_id, self.id, total_correct_staked, total_incorrect_staked, user_correct_stake, stake_profit, fee_profit);
@@ -197,34 +286,21 @@ impl DataRequestChange for DataRequest {
         }
     }
 
-    // @notice Return what's left of validity_bond to requester
-    fn return_validity_bond(&self, token: AccountId) -> PromiseOrValue<bool> {
-        match self.finalized_outcome.as_ref().unwrap() {
-            Outcome::Answer(_) => {
-                PromiseOrValue::Promise(fungible_token_transfer(token, self.requester.account_id.clone(), self.request_config.validity_bond))
-            },
-            Outcome::Invalid => PromiseOrValue::Value(false)
-
-        }
-    }
 }
 
-trait DataRequestView {
+trait ActiveDataRequestView {
     fn assert_valid_outcome(&self, outcome: &Outcome);
     fn assert_valid_outcome_type(&self, outcome: &Outcome);
     fn assert_can_stake_on_outcome(&self, outcome: &Outcome);
-    fn assert_not_finalized(&self);
-    fn assert_finalized(&self);
     fn assert_can_finalize(&self);
     fn assert_final_arbitrator(&self);
     fn assert_final_arbitrator_invoked(&self);
     fn assert_final_arbitrator_not_invoked(&self);
-    fn get_final_outcome(&self) -> Option<Outcome>;
     fn calc_resolution_bond(&self) -> Balance;
-    fn summarize_dr(&self) -> DataRequestSummary;
+    fn summarize_dr(&self) -> ActiveDataRequestSummary;
 }
 
-impl DataRequestView for DataRequest {
+impl ActiveDataRequestView for ActiveDataRequest {
     fn assert_valid_outcome(&self, outcome: &Outcome) {
         match &self.outcomes {
             Some(outcomes) => match outcome {
@@ -267,19 +343,10 @@ impl DataRequestView for DataRequest {
         }
     }
 
-    fn assert_not_finalized(&self) {
-        assert!(self.finalized_outcome.is_none(), "Can't stake in finalized DataRequest");
-    }
-
-    fn assert_finalized(&self) {
-        assert!(self.finalized_outcome.is_some(), "DataRequest is not finalized");
-    }
-
     fn assert_can_finalize(&self) {
         let window = self.resolution_windows.get(self.resolution_windows.len() - 1).unwrap();
         assert!(!self.final_arbitrator_triggered, "Can only be finalized by final arbitrator: {}", self.request_config.final_arbitrator);
         assert!(env::block_timestamp() >= window.end_time, "Error can only be finalized after final dispute round has timed out");
-        self.assert_not_finalized();
     }
 
     fn assert_final_arbitrator(&self) {
@@ -307,13 +374,6 @@ impl DataRequestView for DataRequest {
         );
     }
 
-    fn get_final_outcome(&self) -> Option<Outcome> {
-        assert!(self.resolution_windows.len() >= 2, "No bonded outcome found or final arbitrator triggered after first round");
-        let last_bonded_window_i = self.resolution_windows.len() - 2; // Last window after end_time never has a bonded outcome
-        let last_bonded_window = self.resolution_windows.get(last_bonded_window_i).unwrap();
-        last_bonded_window.bonded_outcome
-    }
-
     /**
      * @notice Calculates the size of the resolution bond. If the accumulated fee is smaller than the validity bond, we payout the validity bond to validators, thus they have to stake double in order to be
      * eligible for the reward, in the case that the fee is greater than the validity bond validators need to have a cumulative stake of double the fee amount
@@ -334,7 +394,7 @@ impl DataRequestView for DataRequest {
     /**
      * @notice Transforms a data request struct into another struct with Serde serialization
      */
-    fn summarize_dr(&self) -> DataRequestSummary {
+    fn summarize_dr(&self) -> ActiveDataRequestSummary {
         // format resolution windows inside this data request
         let mut resolution_windows = Vec::new();
         for i in self.resolution_windows.iter() {
@@ -349,13 +409,12 @@ impl DataRequestView for DataRequest {
         }
 
         // format data request
-        DataRequestSummary {
-            id: self.id,
+        ActiveDataRequestSummary {
+            id: U64(self.id),
             description: self.description.clone(),
             sources: self.sources.clone(),
             outcomes: self.outcomes.clone(),
             requester: self.requester.clone(),
-            finalized_outcome: self.finalized_outcome.clone(),
             resolution_windows: resolution_windows,
             global_config_id: U64(self.global_config_id),
             initial_challenge_period: U64(self.initial_challenge_period),
@@ -394,7 +453,7 @@ impl Contract {
         let paid_fee = amount - validity_bond;
         
         let requester = self.whitelist.whitelist_get_expect(&sender);
-        let dr = DataRequest::new(
+        let dr = ActiveDataRequest::new(
             requester,
             self.data_requests.len() as u64, // dr_id
             self.configs.len() - 1, // dr's config id
@@ -405,7 +464,7 @@ impl Contract {
 
         logger::log_new_data_request(&dr);
 
-        self.data_requests.push(&dr);
+        self.data_requests.push(&DataRequest::Active(dr));
 
         0
     }
@@ -414,18 +473,17 @@ impl Contract {
     // SOLUTION: handle storage here
     #[payable]
     pub fn dr_stake(&mut self, sender: AccountId, amount: Balance, payload: StakeDataRequestArgs) -> PromiseOrValue<WrappedBalance> {
-        let mut dr = self.dr_get_expect(payload.id.into());
+        let mut dr = self.dr_get_expect_active(payload.id.into());
         let config = self.configs.get(dr.global_config_id).unwrap();
         self.assert_sender(&config.stake_token);
         dr.assert_final_arbitrator_not_invoked();
         dr.assert_can_stake_on_outcome(&payload.outcome);
         dr.assert_valid_outcome(&payload.outcome);
         dr.assert_valid_outcome_type(&payload.outcome);
-        dr.assert_not_finalized();
 
         let unspent_stake = dr.stake(sender, payload.outcome, amount);
-        logger::log_update_data_request(&dr);
-        self.data_requests.replace(payload.id.into(), &dr);
+        logger::log_update_active_data_request(&dr);
+        self.data_requests.replace(payload.id.into(), &DataRequest::Active(dr));
 
         PromiseOrValue::Value(U128(unspent_stake))
     }
@@ -436,11 +494,11 @@ impl Contract {
 
         let mut dr = self.dr_get_expect(request_id.into());
         let unstaked = dr.unstake(env::predecessor_account_id(), resolution_round, outcome, amount.into());
-        let config = self.configs.get(dr.global_config_id).unwrap();
+        let config = self.configs.get(dr.get_config_id()).unwrap();
 
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
-        logger::log_update_data_request(&dr);
 
+        dr.log_update();
         fungible_token_transfer(config.stake_token, env::predecessor_account_id(), unstaked);
     }
 
@@ -451,12 +509,11 @@ impl Contract {
     pub fn dr_claim(&mut self, account_id: String, request_id: U64) -> Promise {
         let initial_storage = env::storage_usage();
 
-        let mut dr = self.dr_get_expect(request_id.into());
-        dr.assert_finalized();
+        let mut dr = self.dr_get_expect_finalized(request_id.into());
         let stake_payout = dr.claim(account_id.to_string());
         let config = self.configs.get(dr.global_config_id).unwrap();
 
-        logger::log_update_data_request(&dr);
+        logger::log_update_finalized_data_request(&dr);
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
 
         // transfer owed stake tokens
@@ -481,52 +538,73 @@ impl Contract {
     }
 
     pub fn dr_finalize(&mut self, request_id: U64) {
-        let mut dr = self.dr_get_expect(request_id.into());
+        let dr = self.dr_get_expect_active(request_id.into());
+        let requester = dr.requester.account_id.clone();
+        let validity_bond = dr.request_config.validity_bond;
         dr.assert_can_finalize();
         let final_outcome = dr.get_final_outcome();
         
-        dr.requester.set_outcome(final_outcome.unwrap(), dr.tags.clone());
+        dr.requester.set_outcome(final_outcome.clone(), dr.tags.clone());
 
         let config = self.configs.get(dr.global_config_id).unwrap();
 
-        dr.finalize();
-        dr.return_validity_bond(config.payment_token);
+        let fdr = self.trim_dr(dr, final_outcome);
+        fdr.return_validity_bond(config.payment_token, requester, validity_bond);
+        logger::log_update_finalized_data_request(&fdr);
 
-        self.data_requests.replace(request_id.into(), &dr);
+        self.data_requests.replace(request_id.into(), &DataRequest::Finalized(fdr));
 
-        logger::log_update_data_request(&dr);
     }
 
     #[payable]
     pub fn dr_final_arbitrator_finalize(&mut self, request_id: U64, outcome: Outcome) -> PromiseOrValue<bool> {
         let initial_storage = env::storage_usage();
 
-        let mut dr = self.dr_get_expect(request_id);
-        dr.assert_not_finalized();
+        let dr = self.dr_get_expect_active(request_id);
+        let requester = dr.requester.account_id.clone();
+        let validity_bond = dr.request_config.validity_bond;
         dr.assert_final_arbitrator();
         dr.assert_valid_outcome(&outcome);
         dr.assert_final_arbitrator_invoked();
-        dr.finalize_final_arbitrator(outcome.clone());
 
         let config = self.configs.get(dr.global_config_id).unwrap();
-        dr.requester.set_outcome(outcome, dr.tags.clone());
-        self.data_requests.replace(request_id.into(), &dr);
+        dr.requester.set_outcome(outcome.clone(), dr.tags.clone());
+        let fdr = self.trim_dr(dr, outcome);
+        
+        logger::log_update_finalized_data_request(&fdr);
+        let promise = fdr.return_validity_bond(config.payment_token, requester, validity_bond);
 
-        logger::log_update_data_request(&dr);
+        self.data_requests.replace(request_id.into(), &DataRequest::Finalized(fdr));
+
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
+        promise
 
-        dr.return_validity_bond(config.payment_token)
     }
 
     fn dr_get_expect(&self, id: U64) -> DataRequest {
         self.data_requests.get(id.into()).expect("ERR_DATA_REQUEST_NOT_FOUND")
     }
+    
+    fn dr_get_expect_active(&self, id: U64) -> ActiveDataRequest {
+        match self.data_requests.get(id.into()).expect("Error no DataRequest with this id exists") {
+            DataRequest::Active(dr) => dr,
+            DataRequest::Finalized(_) => panic!("Error DataRequest is already finalized")
+
+        }
+    }
+    
+    fn dr_get_expect_finalized(&self, id: U64) -> FinalizedDataRequest {
+        match self.data_requests.get(id.into()).expect("Error no DataRequest with this id exists") {
+            DataRequest::Active(_) => panic!("Error DataRequest is not yet finalized"),
+            DataRequest::Finalized(dr) => dr
+        }    
+    }
 
     pub fn get_request_by_id(&self, id: U64) -> Option<DataRequestSummary> {
         let dr = self.data_requests.get(id.into());
         match dr {
-            None => None,
-            Some(d) => Some(d.summarize_dr())
+            Some(d) => Some(d.summarize()),
+            None => None
         }
     }
 
@@ -534,23 +612,17 @@ impl Contract {
         if self.data_requests.len() < 1 {
             return None;
         }
-        let dr = self.data_requests.get(self.data_requests.len() - 1);
-        match dr {
-            None => None,
-            Some(d) => Some(d.summarize_dr())
-        }
+        self.get_request_by_id(U64(self.data_requests.len() - 1))
     }
 
     pub fn get_outcome(&self, dr_id: U64) -> Outcome {
-        self.data_requests
-        .get(dr_id.into()).expect("Data request with does not exist")
-        .finalized_outcome.expect("Data request is not yet finalized")
+        self.dr_get_expect_finalized(dr_id.into()).finalized_outcome
     }
 
     pub fn get_requests(&self, from_index: U64, limit: U64) -> Vec<DataRequestSummary> {
         let i: u64 = from_index.into();
         (i..std::cmp::min(i + u64::from(limit), self.data_requests.len()))
-            .map(|index| self.data_requests.get(index).unwrap().summarize_dr())
+            .map(|index| self.data_requests.get(index).unwrap().summarize())
             .collect()
     }
 }
@@ -559,7 +631,7 @@ impl Contract {
     /**
      * @notice Transforms a data request struct into another struct with Serde serialization
      */
-    fn trim_dr(&self, dr: DataRequest, finalized_outcome: Outcome) -> FinalizedDataRequest {        
+    fn trim_dr(&self, dr: ActiveDataRequest, finalized_outcome: Outcome) -> FinalizedDataRequest {        
         // format data request
         FinalizedDataRequest {
             id: dr.id,
@@ -626,7 +698,7 @@ mod mock_token_basic_tests {
     }
 
     fn finalize(contract: &mut Contract, dr_id: u64) -> &mut Contract {
-        let mut dr = contract.dr_get_expect(U64(dr_id));
+        let mut dr = contract.dr_get_expect_(U64(dr_id));
         dr.finalize();
         contract.data_requests.replace(0, &dr);
         contract
