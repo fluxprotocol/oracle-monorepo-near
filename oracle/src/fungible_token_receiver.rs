@@ -33,15 +33,21 @@ impl FungibleTokenReceiver for Contract {
         msg: String
     ) -> PromiseOrValue<WrappedBalance> {
         let sender: &AccountId = sender_id.as_ref();
-        // AUDIT: Verify that the call is made from the correct fungible token by comparing predecessor_account_id
-        // SOLUTION: implement predecessor_account_id check
         let initial_storage_usage = env::storage_usage();
         let account = self.get_storage_account(&sender);
 
-        let payload: Payload =  serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
+        let payload: Payload = serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
+        let config = self.get_config();
+
         let unspent = match payload {
-            Payload::NewDataRequest(payload) => self.ft_dr_new_callback(sender.clone(), amount.into(), payload).into(),
-            Payload::StakeDataRequest(payload) => self.dr_stake(sender.clone(), amount.into(), payload),
+            Payload::NewDataRequest(payload) => {
+                assert_eq!(config.payment_token, env::predecessor_account_id(), "ERR_WRONG_PAYMENT_TOKEN");
+                self.ft_dr_new_callback(sender.clone(), amount.into(), payload).into()
+            },
+            Payload::StakeDataRequest(payload) => {
+                assert_eq!(config.stake_token, env::predecessor_account_id(), "ERR_WRONG_STAKE_TOKEN");
+                self.dr_stake(sender.clone(), amount.into(), payload)
+            },
         };
 
         self.use_storage(&sender, initial_storage_usage, account.available);
