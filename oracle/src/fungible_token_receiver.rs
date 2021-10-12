@@ -2,12 +2,21 @@ use crate::*;
 use near_sdk::{
     serde::{ Serialize, Deserialize },
     serde_json,
-    PromiseOrValue
+    env,
+    PromiseOrValue,
+    // AccountId,
+    near_bindgen,
+    // json_types::{ U128 }
 };
 use flux_sdk::{
     data_request::{ NewDataRequestArgs, StakeDataRequestArgs },
     types::WrappedBalance
 };
+// use near_contract_standards::
+//     fungible_token::
+//     receiver::
+//     FungibleTokenReceiver;
+
 
 #[derive(Serialize, Deserialize)]
 pub enum Payload {
@@ -16,7 +25,8 @@ pub enum Payload {
 }
 
 // AUDIT: This trait is also available from https://github.com/near/near-sdk-rs/tree/master/near-contract-standards
-// SOLUTION: replace with near-built functionality
+// SOLUTION: replace with near-built functionality, BUT GETTING IRRECONCILABLE TYPE ERRORS, need to replace token
+// implementation with near fungible token implementation
 pub trait FungibleTokenReceiver {
     // @returns amount of unused tokens
     fn ft_on_transfer(&mut self, sender_id: AccountId, amount: U128, msg: String) -> PromiseOrValue<WrappedBalance>;
@@ -27,8 +37,8 @@ impl FungibleTokenReceiver for Contract {
     // @returns amount of unused tokens
     fn ft_on_transfer(
         &mut self,
-        sender_id: AccountId,
-        amount: U128,
+        sender_id: near_sdk::AccountId,
+        amount: near_sdk::json_types::U128,
         msg: String
     ) -> PromiseOrValue<WrappedBalance> {
         // AUDIT: Verify that the call is made from the correct fungible token by comparing predecessor_account_id

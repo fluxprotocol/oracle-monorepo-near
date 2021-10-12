@@ -260,9 +260,6 @@ impl DataRequestView for DataRequest {
         }
     }
 
-    // AUDIT: Why -2?
-    // If proposed outcome is the same as the bonded outcome two resolution windows ago, it is not able to be used
-    // Why not previous resolution window?
     fn assert_can_stake_on_outcome(&self, outcome: &Outcome) {
         if self.resolution_windows.len() > 1 {
             let last_window = self.resolution_windows.get(self.resolution_windows.len() - 2).unwrap();
