@@ -9,7 +9,8 @@ use near_sdk::{
     serde_json::json,
 };
 use flux_sdk::{
-    data_request::DataRequest,
+    data_request::ActiveDataRequest,
+    data_request::FinalizedDataRequest,
     config::OracleConfig,
     outcome::{ AnswerType, Outcome },
     requester::Requester,
@@ -17,7 +18,7 @@ use flux_sdk::{
 };
 use crate::helpers::ns_to_ms;
 
-pub fn log_new_data_request(request: &DataRequest) {
+pub fn log_new_data_request(request: &ActiveDataRequest) {
     env::log(
         json!({
             "type": "data_requests",
@@ -47,10 +48,10 @@ pub fn log_new_data_request(request: &DataRequest) {
     );
 }
 
-pub fn log_update_data_request(request: &DataRequest) {
+pub fn log_update_active_data_request(request: &ActiveDataRequest) {
     env::log(
         json!({
-            "type": "data_requests",
+            "type": "active_data_requests",
             "action": "update",
             "cap_id": format!("dr_{}", request.id),
             "params": {
@@ -58,9 +59,23 @@ pub fn log_update_data_request(request: &DataRequest) {
                 "sources": request.sources,
                 "outcomes": request.outcomes,
                 "requester": request.requester,
-                "finalized_outcome": request.finalized_outcome,
                 "initial_challenge_period": U64(request.initial_challenge_period),
                 "final_arbitrator_triggered": request.final_arbitrator_triggered,
+            }
+        })
+        .to_string()
+        .as_bytes()
+    );
+}
+pub fn log_update_finalized_data_request(request: &FinalizedDataRequest) {
+    env::log(
+        json!({
+            "type": "finalized_data_requests",
+            "action": "update",
+            "cap_id": format!("dr_{}", request.id),
+            "params": {
+                "id": U64(request.id),
+                "finalized_outcome": request.finalized_outcome,
             }
         })
         .to_string()
