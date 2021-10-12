@@ -963,7 +963,7 @@ name = "flux-sdk"
 version = "0.2.3"
 source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=64e5e6e5e4202457f9f0789c1f0524c6a7c0aca2#64e5e6e5e4202457f9f0789c1f0524c6a7c0aca2"
 dependencies = [
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "serde",
 ]
 
@@ -1513,10 +1513,10 @@ checksum = "0debeb9fcf88823ea64d64e4a815ab1643f33127d995978e099942ce38f25238"
 
 [[package]]
 name = "near-contract-standards"
-version = "4.0.0-pre.2"
-source = "git+https://github.com/near/near-sdk-rs.git?rev=0f6a029b40c063dd13ab245b97b54f45e684c489#0f6a029b40c063dd13ab245b97b54f45e684c489"
+version = "3.0.0-pre.3"
+source = "git+https://github.com/near/near-sdk-rs.git?rev=249dacdcd3fd34bc00f0895a275f33f05cd910c1#249dacdcd3fd34bc00f0895a275f33f05cd910c1"
 dependencies = [
- "near-sdk 4.0.0-pre.2",
+ "near-sdk",
 ]
 
 [[package]]
@@ -1719,25 +1719,8 @@ dependencies = [
  "borsh",
  "bs58",
  "near-primitives-core 0.1.0",
- "near-sdk-macros 3.0.0-pre.3",
+ "near-sdk-macros",
  "near-vm-logic 3.0.0",
- "serde",
- "serde_json",
- "wee_alloc",
-]
-
-[[package]]
-name = "near-sdk"
-version = "4.0.0-pre.2"
-source = "git+https://github.com/near/near-sdk-rs.git?rev=0f6a029b40c063dd13ab245b97b54f45e684c489#0f6a029b40c063dd13ab245b97b54f45e684c489"
-dependencies = [
- "base64 0.13.0",
- "borsh",
- "bs58",
- "near-primitives-core 0.4.0",
- "near-sdk-macros 4.0.0-pre.2",
- "near-sys",
- "near-vm-logic 4.0.0-pre.1",
  "serde",
  "serde_json",
  "wee_alloc",
@@ -1766,17 +1749,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "near-sdk-macros"
-version = "4.0.0-pre.2"
-source = "git+https://github.com/near/near-sdk-rs.git?rev=0f6a029b40c063dd13ab245b97b54f45e684c489#0f6a029b40c063dd13ab245b97b54f45e684c489"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "near-sdk-sim"
 version = "3.0.0-pre.3"
 source = "git+https://github.com/near/near-sdk-rs.git?rev=249dacdcd3fd34bc00f0895a275f33f05cd910c1#249dacdcd3fd34bc00f0895a275f33f05cd910c1"
@@ -1787,7 +1759,7 @@ dependencies = [
  "near-pool",
  "near-primitives",
  "near-runtime",
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "near-store",
  "near-vm-logic 4.0.0-pre.1",
 ]
@@ -1813,11 +1785,6 @@ dependencies = [
  "serde_json",
  "strum",
 ]
-
-[[package]]
-name = "near-sys"
-version = "0.1.0"
-source = "git+https://github.com/near/near-sdk-rs.git?rev=0f6a029b40c063dd13ab245b97b54f45e684c489#0f6a029b40c063dd13ab245b97b54f45e684c489"
 
 [[package]]
 name = "near-vm-errors"
@@ -2024,7 +1991,7 @@ version = "0.1.0"
 dependencies = [
  "flux-sdk",
  "near-contract-standards",
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "near-sdk-sim",
  "request-interface",
  "serde",
@@ -2477,7 +2444,7 @@ name = "request-interface"
 version = "0.1.0"
 dependencies = [
  "flux-sdk",
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "serde",
 ]
 
@@ -2854,7 +2821,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 name = "token"
 version = "0.1.0"
 dependencies = [
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "near-sdk-sim",
 ]
 
