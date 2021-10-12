@@ -31,7 +31,7 @@ pub fn log_new_data_request(request: &ActiveDataRequest) {
                 "outcomes": request.outcomes,
                 "requester": request.requester,
                 "requester_account_id": request.requester.account_id,
-                "finalized_outcome": request.finalized_outcome,
+                "finalized_outcome": near_sdk::serde_json::Value::Null,
                 "initial_challenge_period": U64(request.initial_challenge_period),
                 "final_arbitrator_triggered": request.final_arbitrator_triggered,
                 "paid_fee": U128(request.request_config.paid_fee),
@@ -51,7 +51,7 @@ pub fn log_new_data_request(request: &ActiveDataRequest) {
 pub fn log_update_active_data_request(request: &ActiveDataRequest) {
     env::log(
         json!({
-            "type": "active_data_requests",
+            "type": "data_requests",
             "action": "update",
             "cap_id": format!("dr_{}", request.id),
             "params": {
@@ -67,10 +67,11 @@ pub fn log_update_active_data_request(request: &ActiveDataRequest) {
         .as_bytes()
     );
 }
+
 pub fn log_update_finalized_data_request(request: &FinalizedDataRequest) {
     env::log(
         json!({
-            "type": "finalized_data_requests",
+            "type": "data_requests",
             "action": "update",
             "cap_id": format!("dr_{}", request.id),
             "params": {
