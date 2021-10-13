@@ -27,8 +27,7 @@ impl Whitelist {
         }
     }
 
-    // AUDIT: Switch to `contains_key`
-    pub fn contains(&self, requester: AccountId) -> bool {
+    pub fn contains_key(&self, requester: AccountId) -> bool {
         match self.0.as_ref().expect("No whitelist initiated").get(&requester) {
             None => false,
             _ => true
@@ -95,11 +94,8 @@ impl WhitelistHandler for Contract {
         self.assert_gov();
 
         let initial_storage = env::storage_usage();
-        // AUDIT: Should this be after `.remove()`
-        helpers::refund_storage(initial_storage, env::predecessor_account_id());
         logger::log_whitelist(&requester, false);
-
-
+        
         match &mut self.whitelist.0 {
             Some(whitelist) => {
                 whitelist.remove(&requester.account_id);
@@ -108,10 +104,12 @@ impl WhitelistHandler for Contract {
                 panic!("Uninitiated whitelist")
             }
         };
+
+        helpers::refund_storage(initial_storage, env::predecessor_account_id());
     }
 
     fn whitelist_contains(&self, requester: AccountId) -> bool {
-        self.whitelist.contains(requester)
+        self.whitelist.contains_key(requester)
     }
 }
 
