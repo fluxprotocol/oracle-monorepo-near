@@ -54,7 +54,7 @@ trait DataRequestMethods {
 impl DataRequestMethods for DataRequest {
     // @returns amount of tokens that didn't get staked
     fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance {        
-        let mut resolution_windows = match self {
+        let resolution_windows = match self {
             DataRequest::Active(dr) => &dr.resolution_windows,
             DataRequest::Finalized(dr) => &dr.resolution_windows
         };
@@ -342,6 +342,7 @@ impl ActiveDataRequestView for ActiveDataRequest {
     }
 
     fn assert_can_finalize(&self) {
+        assert!(self.resolution_windows.len() > 0, "Error no bonded outcome, `DataRequest` still in progress");
         let window = self.resolution_windows.get(self.resolution_windows.len() - 1).unwrap();
         assert!(!self.final_arbitrator_triggered, "Can only be finalized by final arbitrator: {}", self.request_config.final_arbitrator);
         assert!(env::block_timestamp() >= window.end_time, "Error can only be finalized after final dispute round has timed out");
@@ -694,9 +695,7 @@ mod mock_token_basic_tests {
     }
 
     fn finalize(contract: &mut Contract, dr_id: u64) -> &mut Contract {
-        let mut dr = contract.dr_get_expect_active(U64(dr_id));
-        dr.finalize();
-        contract.data_requests.replace(0, &dr);
+        contract.dr_finalize(dr_id.into());
         contract
     }
 
@@ -953,7 +952,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "ERR_DATA_REQUEST_NOT_FOUND")]
+    #[should_panic(expected = "Error no DataRequest with this id exists")]
     fn dr_stake_not_existing() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -979,7 +978,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can't stake in finalized DataRequest")]
+    #[should_panic(expected = "Error DataRequest is already finalized")]
     fn dr_stake_finalized_market() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -1038,11 +1037,11 @@ mod mock_token_basic_tests {
         });
         // assert_eq!(b, 0, "Invalid balance");
 
-        let request : DataRequest = contract.data_requests.get(0).unwrap();
+        let request: ActiveDataRequest = contract.dr_get_expect_active(0.into());
         assert_eq!(request.resolution_windows.len(), 1);
 
 
-        let round0 : ResolutionWindow = request.resolution_windows.get(0).unwrap();
+        let round0: ResolutionWindow = request.resolution_windows.get(0).unwrap();
         assert_eq!(round0.round, 0);
         assert_eq!(round0.end_time, 1500);
         assert_eq!(round0.bond_size, 200);
@@ -1061,7 +1060,7 @@ mod mock_token_basic_tests {
         });
         // assert_eq!(b, 0, "Invalid balance");
 
-        let request : DataRequest = contract.data_requests.get(0).unwrap();
+        let request: ActiveDataRequest = contract.dr_get_expect_active(0.into());
         assert_eq!(request.resolution_windows.len(), 2);
 
         let round0 : ResolutionWindow = request.resolution_windows.get(0).unwrap();
@@ -1092,7 +1091,7 @@ mod mock_token_basic_tests {
         });
         // assert_eq!(b, 100, "Invalid balance");
 
-        let request : DataRequest = contract.data_requests.get(0).unwrap();
+        let request: ActiveDataRequest = contract.dr_get_expect_active(0.into());
         assert_eq!(request.resolution_windows.len(), 2);
 
         let round0 : ResolutionWindow = request.resolution_windows.get(0).unwrap();
@@ -1125,7 +1124,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "No bonded outcome found")]
+    #[should_panic(expected = "Error no bonded outcome, `DataRequest` still in progress")]
     fn dr_finalize_no_resolutions() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -1169,9 +1168,9 @@ mod mock_token_basic_tests {
 
         let contract = finalize(&mut contract, 0);
 
-        let request : DataRequest = contract.data_requests.get(0).unwrap();
+        let request: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         assert_eq!(request.resolution_windows.len(), 2);
-        assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
+        assert_eq!(request.finalized_outcome, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
     }
 
     #[test]
@@ -1275,11 +1274,11 @@ mod mock_token_basic_tests {
 
         // verify initial storage
         assert_eq!(contract.
-            data_requests.get(0).unwrap().
+            dr_get_expect_active(0.into()).
             resolution_windows.get(0).unwrap().
             user_to_outcome_to_stake.get(&alice()).unwrap().get(&outcome).unwrap(), 10);
         assert_eq!(contract.
-            data_requests.get(0).unwrap().
+            dr_get_expect_active(0.into()).
             resolution_windows.get(0).unwrap().
             outcome_to_stake.get(&outcome).unwrap(), 10);
 
@@ -1287,17 +1286,17 @@ mod mock_token_basic_tests {
 
         // verify storage after unstake
         assert_eq!(contract.
-            data_requests.get(0).unwrap().
+            dr_get_expect_active(0.into()).
             resolution_windows.get(0).unwrap().
             user_to_outcome_to_stake.get(&alice()).unwrap().get(&outcome).unwrap(), 9);
         assert_eq!(contract.
-            data_requests.get(0).unwrap().
+            dr_get_expect_active(0.into()).
             resolution_windows.get(0).unwrap().
             outcome_to_stake.get(&outcome).unwrap(), 9);
     }
 
     #[test]
-    #[should_panic(expected = "ERR_DATA_REQUEST_NOT_FOUND")]
+    #[should_panic(expected = "Error no DataRequest with this id exists")]
     fn dr_claim_invalid_id() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -1325,7 +1324,7 @@ mod mock_token_basic_tests {
         dr_new(&mut contract);
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // validity bond
         assert_eq!(sum_claim_res(d.claim(alice())), 200);
     }
@@ -1337,8 +1336,9 @@ mod mock_token_basic_tests {
         let mut contract = Contract::new(whitelist, config());
         dr_new(&mut contract);
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
+        
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // validity bond
         assert_eq!(sum_claim_res(d.claim(alice())), 200);
         assert_eq!(sum_claim_res(d.claim(alice())), 0);
@@ -1354,7 +1354,8 @@ mod mock_token_basic_tests {
         dr_new(&mut contract);
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
+        
         // fees (100% of TVL)
         assert_eq!(sum_claim_res(d.claim(alice())), 294);
     }
@@ -1372,7 +1373,7 @@ mod mock_token_basic_tests {
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // validity bond
         assert_eq!(sum_claim_res(d.claim(alice())), 100);
         assert_eq!(sum_claim_res(d.claim(bob())), 100);
@@ -1393,7 +1394,7 @@ mod mock_token_basic_tests {
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // validity bond + round 0 stake
         assert_eq!(sum_claim_res(d.claim(alice())), 600);
         assert_eq!(sum_claim_res(d.claim(bob())), 0);
@@ -1418,7 +1419,7 @@ mod mock_token_basic_tests {
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // validity bond + round 0 stake
         assert_eq!(sum_claim_res(d.claim(alice())), 450);
         assert_eq!(sum_claim_res(d.claim(bob())), 0);
@@ -1444,7 +1445,7 @@ mod mock_token_basic_tests {
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // round 1 stake
         assert_eq!(sum_claim_res(d.claim(alice())), 1120);
         // validity bond
@@ -1475,7 +1476,7 @@ mod mock_token_basic_tests {
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // round 1 stake
         assert_eq!(sum_claim_res(d.claim(alice())), 1120);
         // 50% of validity bond
@@ -1508,7 +1509,7 @@ mod mock_token_basic_tests {
         });
         dr_finalize(&mut contract, data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // 5/8 of round 1 stake
         assert_eq!(sum_claim_res(d.claim(alice())), 700);
         // validity bond
@@ -1539,7 +1540,7 @@ mod mock_token_basic_tests {
         testing_env!(get_context(alice()));
         contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         assert_eq!(sum_claim_res(d.claim(alice())), 600);
         assert_eq!(sum_claim_res(d.claim(bob())), 0);
     }
@@ -1571,7 +1572,7 @@ mod mock_token_basic_tests {
         testing_env!(get_context(alice()));
         contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("a".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         // validity bond
         assert_eq!(sum_claim_res(d.claim(alice())), 280);
         assert_eq!(sum_claim_res(d.claim(bob())), 0);
@@ -1606,7 +1607,7 @@ mod mock_token_basic_tests {
         testing_env!(get_context(alice()));
         contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
-        let mut d = contract.data_requests.get(0).unwrap();
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         assert_eq!(sum_claim_res(d.claim(alice())), 0);
         // validity bond (100), round0 (200), round2 (800)
         assert_eq!(sum_claim_res(d.claim(bob())), 1400);
@@ -1677,7 +1678,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can't stake in finalized DataRequest")]
+    #[should_panic(expected = "Error DataRequest is already finalized")]
     fn dr_final_arb_twice() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
@@ -1724,9 +1725,9 @@ mod mock_token_basic_tests {
         testing_env!(get_context(alice()));
         contract.dr_final_arbitrator_finalize(U64(0), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
 
-        let request : DataRequest = contract.data_requests.get(0).unwrap();
+        let request: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         assert_eq!(request.resolution_windows.len(), 2);
-        assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer(AnswerType::String("b".to_string())));
+        assert_eq!(request.finalized_outcome, data_request::Outcome::Answer(AnswerType::String("b".to_string())));
     }
 
     #[test]
@@ -1770,8 +1771,7 @@ mod mock_token_basic_tests {
             data_request::AnswerType::String("a".to_string())
         ));
 
-        let mut d = contract.data_requests.get(0).unwrap();
-
+        let mut d: FinalizedDataRequest = contract.dr_get_expect_finalized(0.into());
         assert_eq!(sum_claim_res(d.claim(alice())), 60);
     }
 
@@ -1783,11 +1783,22 @@ mod mock_token_basic_tests {
         dr_new(&mut contract);
         dr_new(&mut contract);
         dr_new(&mut contract);
-        
-        assert_eq!(contract.get_latest_request().unwrap().id, 2);
-        assert_eq!(contract.get_request_by_id(U64(1)).unwrap().id, 1);
 
-        assert_eq!(contract.get_requests(U64(0), U64(1))[0].id, 0);
+        match contract.get_latest_request().unwrap() {
+            DataRequestSummary::Active(s) => assert_eq!(s.id, U64(2)),
+            DataRequestSummary::Finalized(_) => panic!("expected `DataRequest` to be active"),
+        }
+        
+        match contract.get_request_by_id(U64(1)).unwrap() {
+            DataRequestSummary::Active(s) => assert_eq!(s.id, U64(1)),
+            DataRequestSummary::Finalized(_) => panic!("expected `DataRequest` to be active"),
+        }
+        
+        match &contract.get_requests(U64(0), U64(1))[0] {
+            DataRequestSummary::Active(s) => assert_eq!(s.id, U64(0)),
+            DataRequestSummary::Finalized(_) => panic!("expected `DataRequest` to be active"),
+        }
+        
         assert_eq!(contract.get_requests(U64(1), U64(1)).len(), 1);
         assert_eq!(contract.get_requests(U64(1), U64(2)).len(), 2);
         assert_eq!(contract.get_requests(U64(0), U64(3)).len(), 3);
