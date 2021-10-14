@@ -55,8 +55,8 @@ impl DataRequestMethods for DataRequest {
     // @returns amount of tokens that didn't get staked
     fn unstake(&mut self, sender: AccountId, round: u16, outcome: Outcome, amount: Balance) -> Balance {        
         let mut resolution_windows = match self {
-            DataRequest::Active(dr) => dr.resolution_windows,
-            DataRequest::Finalized(dr) => dr.resolution_windows
+            DataRequest::Active(dr) => &dr.resolution_windows,
+            DataRequest::Finalized(dr) => &dr.resolution_windows
         };
 
         let mut window = resolution_windows
@@ -217,7 +217,7 @@ impl FinalizedDataRequestMethods for FinalizedDataRequest {
         // format data request
         FinalizedDataRequestSummary {
             id: self.id.into(),
-            finalized_outcome: self.finalized_outcome,
+            finalized_outcome: self.finalized_outcome.clone(),
             resolution_windows: resolution_windows,
             global_config_id: U64(self.global_config_id),
             paid_fee: U128(self.paid_fee),
@@ -698,7 +698,7 @@ mod mock_token_basic_tests {
     }
 
     fn finalize(contract: &mut Contract, dr_id: u64) -> &mut Contract {
-        let mut dr = contract.dr_get_expect_(U64(dr_id));
+        let mut dr = contract.dr_get_expect_active(U64(dr_id));
         dr.finalize();
         contract.data_requests.replace(0, &dr);
         contract
