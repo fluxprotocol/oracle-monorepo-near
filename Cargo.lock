@@ -1692,9 +1692,9 @@ dependencies = [
  "near-pool",
  "near-primitives",
  "near-runtime",
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "near-store",
- "near-vm-logic 4.0.0-pre.1",
+ "near-vm-logic",
 ]
 
 [[package]]
@@ -1894,8 +1894,8 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 name = "oracle"
 version = "0.1.0"
 dependencies = [
- "flux-sdk 0.2.3 (git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=e261023302e5bcfe7747c0a308db6b126af05bf9)",
- "near-sdk 3.0.0-pre.3",
+ "flux-sdk",
+ "near-sdk",
  "near-sdk-sim",
  "request-interface",
  "serde",
@@ -2380,8 +2380,8 @@ dependencies = [
 name = "request-interface"
 version = "0.2.0"
 dependencies = [
- "flux-sdk 0.2.3 (git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=aadde819566bc5306e6f17a9e61cba3f895dfb90)",
- "near-sdk 3.1.0",
+ "flux-sdk",
+ "near-sdk",
  "serde",
 ]
 
@@ -2761,7 +2761,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 name = "token"
 version = "0.1.0"
 dependencies = [
- "near-sdk 3.0.0-pre.3",
+ "near-sdk",
  "near-sdk-sim",
 ]
 
