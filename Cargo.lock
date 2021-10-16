@@ -2442,6 +2442,7 @@ dependencies = [
 [[package]]
 name = "request-interface"
 version = "0.1.0"
+source = "git+https://github.com/fluxprotocol/requester-sample-contract.git?rev=ad5c88de76867227a7d2045f8ac2bba5ac127987#ad5c88de76867227a7d2045f8ac2bba5ac127987"
 dependencies = [
  "flux-sdk 0.2.3 (git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=64e5e6e5e4202457f9f0789c1f0524c6a7c0aca2)",
  "near-sdk",
