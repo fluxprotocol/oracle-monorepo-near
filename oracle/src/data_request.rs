@@ -12,6 +12,7 @@ use near_sdk::{
 };
 use flux_sdk::{
     config::OracleConfig,
+    consts::GAS_BASE_TRANSFER,
     data_request::{
         DataRequestConfigSummary,
         StakeDataRequestArgs,
@@ -36,8 +37,6 @@ use crate::{
     resolution_window::ResolutionWindowHandler,
     requester_handler::RequesterHandler
 };
-
-pub const FINALIZATION_GAS: u64 = 250_000_000_000_000;
 
 #[ext_contract]
 trait ExtSelf {
@@ -502,6 +501,7 @@ impl Contract {
     /**
      * @returns amount of tokens claimed
      */
+
     #[payable]
     pub fn dr_claim(&mut self, account_id: String, request_id: U64) -> Promise {
         let initial_storage = env::storage_usage();
@@ -512,6 +512,8 @@ impl Contract {
 
         logger::log_update_finalized_data_request(&dr);
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
+
+        assert!(env::prepaid_gas() - env::used_gas() >= GAS_BASE_TRANSFER, "not enough gas for both token transfers");
 
         // transfer owed stake tokens
         let prev_prom = if stake_payout.stake_token_payout > 0 {
