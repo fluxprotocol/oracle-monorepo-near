@@ -1,16 +1,9 @@
 use crate::*;
-use near_sdk::{
-    PromiseOrValue,
-    ext_contract, 
-    Promise
-};
 use flux_sdk::{
-    data_request::NewDataRequestArgs,
-    outcome::Outcome,
-    types::WrappedBalance,
-    requester::Requester,
-    consts::GAS_BASE_SET_OUTCOME
+    consts::GAS_BASE_SET_OUTCOME, data_request::NewDataRequestArgs, outcome::Outcome,
+    requester::Requester, types::WrappedBalance,
 };
+use near_sdk::{ext_contract, Promise, PromiseOrValue};
 
 #[ext_contract]
 pub trait RequesterContractExtern {
@@ -33,22 +26,17 @@ impl RequesterHandler for Requester {
             contract_name: "".to_string(),
             account_id: account_id.to_string(),
             stake_multiplier: None,
-            code_base_url: None
+            code_base_url: None,
         }
     }
-    fn set_outcome(
-        &self,
-        outcome: Outcome,
-        tags: Vec<String>
-    ) -> Promise {
+    fn set_outcome(&self, outcome: Outcome, tags: Vec<String>) -> Promise {
         requester_contract_extern::set_outcome(
             self.account_id.to_string(),
             outcome,
             tags,
-
             // NEAR params
             &self.account_id,
-            1, 
+            1,
             GAS_BASE_SET_OUTCOME / 10,
         )
     }
@@ -64,7 +52,7 @@ impl Contract {
         &mut self,
         sender: AccountId,
         amount: Balance,
-        payload: NewDataRequestArgs
+        payload: NewDataRequestArgs,
     ) -> PromiseOrValue<WrappedBalance> {
         PromiseOrValue::Value(U128(self.dr_new(sender.clone(), amount.into(), payload)))
     }

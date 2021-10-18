@@ -1,7 +1,7 @@
 use super::*;
-use near_sdk::{Promise};
 use near_sdk::json_types::{ValidAccountId, U128};
 use near_sdk::serde::Serialize;
+use near_sdk::Promise;
 
 /// Price per 1 byte of storage from mainnet config after `0.18` release and protocol version `42`.
 /// It's 10 times lower than the genesis price.
@@ -29,7 +29,6 @@ pub struct StorageBalanceBounds {
     max: Option<U128>,
 }
 
-
 pub trait StorageManager {
     fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> StorageBalance;
 
@@ -50,14 +49,13 @@ fn assert_one_yocto() {
 
 #[near_bindgen]
 impl StorageManager for Contract {
-
     #[payable]
     fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> StorageBalance {
         let amount = env::attached_deposit();
         let account_id = account_id
             .map(|a| a.into())
             .unwrap_or_else(|| env::predecessor_account_id());
-        
+
         let mut account = self.get_storage_account(&account_id);
 
         account.available += amount;
@@ -110,23 +108,38 @@ impl StorageManager for Contract {
 
 impl Contract {
     pub fn get_storage_account(&self, account_id: &AccountId) -> AccountStorageBalance {
-        self.accounts.get(account_id)
-            .unwrap_or(AccountStorageBalance { total: 0, available: 0 })
+        self.accounts
+            .get(account_id)
+            .unwrap_or(AccountStorageBalance {
+                total: 0,
+                available: 0,
+            })
     }
 
-    pub fn use_storage(&mut self, sender_id: &AccountId, initial_storage_usage: u64, initial_available_balance: u128) {
+    pub fn use_storage(
+        &mut self,
+        sender_id: &AccountId,
+        initial_storage_usage: u64,
+        initial_available_balance: u128,
+    ) {
         if env::storage_usage() >= initial_storage_usage {
             // used more storage, deduct from balance
-            let difference : u128 = u128::from(env::storage_usage() - initial_storage_usage);
+            let difference: u128 = u128::from(env::storage_usage() - initial_storage_usage);
             let mut account = self.get_storage_account(sender_id);
             let cost = difference * STORAGE_PRICE_PER_BYTE;
-            assert!(cost <= initial_available_balance, "{} has {} deposited, {} is required for this transaction", sender_id, initial_available_balance, cost);
+            assert!(
+                cost <= initial_available_balance,
+                "{} has {} deposited, {} is required for this transaction",
+                sender_id,
+                initial_available_balance,
+                cost
+            );
             account.available = initial_available_balance - difference * STORAGE_PRICE_PER_BYTE;
 
             self.accounts.insert(sender_id, &account);
         } else {
             // freed up storage, add to balance
-            let difference : u128 = u128::from(initial_storage_usage - env::storage_usage());
+            let difference: u128 = u128::from(initial_storage_usage - env::storage_usage());
             let mut account = self.get_storage_account(sender_id);
             account.available = initial_available_balance + difference * STORAGE_PRICE_PER_BYTE;
 
@@ -139,14 +152,9 @@ impl Contract {
 #[cfg(test)]
 mod mock_token_basic_tests {
     use super::*;
+    use flux_sdk::config::{FeeConfig, OracleConfig};
+    use near_sdk::{json_types::U64, testing_env, MockedBlockchain, VMContext};
     use std::convert::TryInto;
-    use near_sdk::{ 
-        json_types::U64,
-        MockedBlockchain,
-        testing_env,
-        VMContext 
-    };
-    use flux_sdk::config::{ OracleConfig, FeeConfig };
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -181,7 +189,7 @@ mod mock_token_basic_tests {
             contract_name: account.clone(),
             account_id: account.clone(),
             stake_multiplier: None,
-            code_base_url: None
+            code_base_url: None,
         }
     }
 
@@ -200,7 +208,7 @@ mod mock_token_basic_tests {
                 flux_market_cap: U128(50000),
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
-            }
+            },
         }
     }
 
@@ -237,7 +245,7 @@ mod mock_token_basic_tests {
         let amount = 10u128.pow(24);
 
         //deposit
-        let mut c : VMContext = get_context(alice());
+        let mut c: VMContext = get_context(alice());
         c.attached_deposit = amount;
         testing_env!(c);
         contract.storage_deposit(Some(to_valid(alice())));
@@ -246,13 +254,13 @@ mod mock_token_basic_tests {
         assert_eq!(account.available, amount);
 
         //deposit again
-        let mut c : VMContext = get_context(alice());
+        let mut c: VMContext = get_context(alice());
         c.attached_deposit = amount;
         testing_env!(c);
         contract.storage_deposit(Some(to_valid(alice())));
 
         let account = contract.get_storage_account(&alice());
-        assert_eq!(account.available, amount*2);
+        assert_eq!(account.available, amount * 2);
     }
 
     #[test]
@@ -267,19 +275,19 @@ mod mock_token_basic_tests {
         let amount = 10u128.pow(24);
 
         //deposit
-        let mut c : VMContext = get_context(alice());
+        let mut c: VMContext = get_context(alice());
         c.attached_deposit = amount;
         testing_env!(c);
         contract.storage_deposit(Some(to_valid(alice())));
 
         // withdraw
-        let mut c : VMContext = get_context(alice());
+        let mut c: VMContext = get_context(alice());
         c.attached_deposit = 1;
         testing_env!(c);
 
-        contract.storage_withdraw(U128(amount/2));
+        contract.storage_withdraw(U128(amount / 2));
         let account = contract.get_storage_account(&alice());
-        assert_eq!(account.available, amount/2);
+        assert_eq!(account.available, amount / 2);
     }
 
     #[test]
@@ -295,16 +303,16 @@ mod mock_token_basic_tests {
         let amount = 10u128.pow(24);
 
         //deposit
-        let mut c : VMContext = get_context(alice());
+        let mut c: VMContext = get_context(alice());
         c.attached_deposit = amount;
         testing_env!(c);
         contract.storage_deposit(Some(to_valid(alice())));
 
         // withdraw
-        let mut c : VMContext = get_context(alice());
+        let mut c: VMContext = get_context(alice());
         c.attached_deposit = 1;
         testing_env!(c);
 
-        contract.storage_withdraw(U128(amount*2));
+        contract.storage_withdraw(U128(amount * 2));
     }
 }

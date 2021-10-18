@@ -1,6 +1,6 @@
 use crate::utils::*;
 pub struct RequesterContractUtils {
-    pub contract: ContractAccount<RequesterContract>
+    pub contract: ContractAccount<RequesterContract>,
 }
 
 impl RequesterContractUtils {
@@ -23,12 +23,20 @@ impl RequesterContractUtils {
                 None
             )
         );
-        
-        storage_deposit(TOKEN_CONTRACT_ID, &master_account.account, SAFE_STORAGE_AMOUNT, Some(REQUESTER_CONTRACT_ID.to_string()));
-        storage_deposit(ORACLE_CONTRACT_ID, &master_account.account, 5140000000000000000000, Some(REQUESTER_CONTRACT_ID.to_string()));
 
-        Self {
-            contract
-        }
+        storage_deposit(
+            TOKEN_CONTRACT_ID,
+            &master_account.account,
+            SAFE_STORAGE_AMOUNT,
+            Some(REQUESTER_CONTRACT_ID.to_string()),
+        );
+        storage_deposit(
+            ORACLE_CONTRACT_ID,
+            &master_account.account,
+            5140000000000000000000,
+            Some(REQUESTER_CONTRACT_ID.to_string()),
+        );
+
+        Self { contract }
     }
 }

@@ -1,22 +1,18 @@
-use near_sdk::{
-    env,
-    AccountId,
-    Balance,
-	json_types::{
-        U64,
-        U128,
-    },
-    serde_json::json,
-};
+use crate::helpers::ns_to_ms;
 use flux_sdk::{
+    config::OracleConfig,
     data_request::ActiveDataRequest,
     data_request::FinalizedDataRequest,
-    config::OracleConfig,
-    outcome::{ AnswerType, Outcome },
+    outcome::{AnswerType, Outcome},
     requester::Requester,
     resolution_window::ResolutionWindow,
 };
-use crate::helpers::ns_to_ms;
+use near_sdk::{
+    env,
+    json_types::{U128, U64},
+    serde_json::json,
+    AccountId, Balance,
+};
 
 pub fn log_new_data_request(request: &ActiveDataRequest) {
     env::log(
@@ -44,7 +40,7 @@ pub fn log_new_data_request(request: &ActiveDataRequest) {
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
@@ -64,7 +60,7 @@ pub fn log_update_active_data_request(request: &ActiveDataRequest) {
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
@@ -80,7 +76,7 @@ pub fn log_update_finalized_data_request(request: &FinalizedDataRequest) {
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
@@ -101,7 +97,6 @@ pub fn log_oracle_config(config: &OracleConfig, id: u64) {
                 "default_challenge_window_duration": config.default_challenge_window_duration,
                 "min_initial_challenge_window_duration": config.min_initial_challenge_window_duration,
                 "final_arbitrator_invoke_amount": config.final_arbitrator_invoke_amount,
-                
                 "fee": {
                     "flux_market_cap": config.fee.flux_market_cap,
                     "total_value_staked": config.fee.total_value_staked,
@@ -137,7 +132,7 @@ pub fn log_resolution_window(window: &ResolutionWindow) {
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
@@ -145,17 +140,25 @@ fn outcome_to_id(outcome: &Outcome) -> String {
     // We append ans_ infront of an answer to avoid malicous fake invalids
     // that would overwrite a real invalid outcome
     match outcome {
-        Outcome::Answer(answer) =>  match answer {
+        Outcome::Answer(answer) => match answer {
             AnswerType::String(str_ans) => format!("ans_str_{}", str_ans),
-            AnswerType::Number(num_ans) => format!("ans_num_{}_{}_{}", num_ans.value.0, num_ans.multiplier.0, num_ans.negative),
+            AnswerType::Number(num_ans) => format!(
+                "ans_num_{}_{}_{}",
+                num_ans.value.0, num_ans.multiplier.0, num_ans.negative
+            ),
         },
-        Outcome::Invalid => "invalid".to_string()
+        Outcome::Invalid => "invalid".to_string(),
     }
 }
 
-pub fn log_outcome_to_stake(data_request_id: u64, round: u16, outcome: &Outcome, total_stake: Balance) {
+pub fn log_outcome_to_stake(
+    data_request_id: u64,
+    round: u16,
+    outcome: &Outcome,
+    total_stake: Balance,
+) {
     let outcome_id = outcome_to_id(outcome);
-    
+
     env::log(
         json!({
             "type": "outcome_stakes",
@@ -170,13 +173,19 @@ pub fn log_outcome_to_stake(data_request_id: u64, round: u16, outcome: &Outcome,
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
-pub fn log_user_stake(data_request_id: u64, round: u16, account_id: &AccountId, outcome: &Outcome, total_stake: Balance) {
+pub fn log_user_stake(
+    data_request_id: u64,
+    round: u16,
+    account_id: &AccountId,
+    outcome: &Outcome,
+    total_stake: Balance,
+) {
     let outcome_id = outcome_to_id(outcome);
-    
+
     env::log(
         json!({
             "type": "user_stakes",
@@ -192,16 +201,16 @@ pub fn log_user_stake(data_request_id: u64, round: u16, account_id: &AccountId, 
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
 pub fn log_claim(
-    account_id: &AccountId, 
-    data_request_id: u64, 
-    total_correct_bonded_staked: u128, 
-    total_incorrect_staked: u128, 
-    user_correct_stake: u128, 
+    account_id: &AccountId,
+    data_request_id: u64,
+    total_correct_bonded_staked: u128,
+    total_incorrect_staked: u128,
+    user_correct_stake: u128,
     stake_profit: u128,
     fee_profit: u128,
 ) {
@@ -217,7 +226,7 @@ pub fn log_claim(
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 
     env::log(
@@ -239,7 +248,7 @@ pub fn log_claim(
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
@@ -261,7 +270,7 @@ pub fn log_whitelist(requester: &Requester, active: bool) {
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
@@ -272,11 +281,11 @@ pub enum TransactionType {
 }
 
 pub fn log_transaction(
-    tx_type: TransactionType, 
-    account_id: &AccountId, 
-    data_request_id: u64, 
-    round: Option<u16>, 
-    input: u128, 
+    tx_type: TransactionType,
+    account_id: &AccountId,
+    data_request_id: u64,
+    round: Option<u16>,
+    input: u128,
     output: u128,
     extra_info: Option<String>,
 ) {
@@ -296,41 +305,41 @@ pub fn log_transaction(
             }
         })
         .to_string()
-        .as_bytes()
+        .as_bytes(),
     );
 }
 
 pub fn log_stake_transaction(
-    account_id: &AccountId, 
-    window: &ResolutionWindow, 
-    amount_in: Balance, 
+    account_id: &AccountId,
+    window: &ResolutionWindow,
+    amount_in: Balance,
     amount_out: Balance,
-    outcome: &Outcome
+    outcome: &Outcome,
 ) {
     log_transaction(
-        TransactionType::Stake, 
-        account_id, 
+        TransactionType::Stake,
+        account_id,
         window.dr_id,
-        Some(window.round), 
+        Some(window.round),
         amount_in,
-        amount_out, 
-        Some(outcome_to_id(outcome))
+        amount_out,
+        Some(outcome_to_id(outcome)),
     );
 }
 
 pub fn log_unstake_transaction(
-    account_id: &AccountId, 
-    window: &ResolutionWindow, 
+    account_id: &AccountId,
+    window: &ResolutionWindow,
     amount_out: Balance,
-    outcome: &Outcome
+    outcome: &Outcome,
 ) {
     log_transaction(
-        TransactionType::Unstake, 
-        account_id, 
-        window.dr_id, 
-        Some(window.round), 
+        TransactionType::Unstake,
+        account_id,
+        window.dr_id,
+        Some(window.round),
         0,
-        amount_out, 
-        Some(outcome_to_id(outcome))
+        amount_out,
+        Some(outcome_to_id(outcome)),
     );
 }

@@ -37,7 +37,14 @@ impl TokenContract {
         if let Some(new_balance) = balance.checked_sub(amount) {
             self.accounts.insert(&account_id, &new_balance);
         } else {
-            env::panic(format!("The account: {} doesn't have enough balance", env::predecessor_account_id()).to_string().as_bytes());
+            env::panic(
+                format!(
+                    "The account: {} doesn't have enough balance",
+                    env::predecessor_account_id()
+                )
+                .to_string()
+                .as_bytes(),
+            );
         }
     }
 
