@@ -921,8 +921,8 @@ dependencies = [
 
 [[package]]
 name = "flux-sdk"
-version = "0.2.3"
-source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=aadde819566bc5306e6f17a9e61cba3f895dfb90#aadde819566bc5306e6f17a9e61cba3f895dfb90"
+version = "0.2.4"
+source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=433b3297eaac4600b8c8a8bb2673081480379511#433b3297eaac4600b8c8a8bb2673081480379511"
 dependencies = [
  "near-sdk",
  "serde",
@@ -1903,7 +1903,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 name = "oracle"
 version = "0.1.0"
 dependencies = [
- "flux-sdk 0.2.4",
+ "flux-sdk 0.2.4 (git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=f53105815f5d063b58ab8c25f025823e8301d896)",
  "near-sdk",
  "near-sdk-sim",
  "request-interface",
@@ -2387,9 +2387,9 @@ dependencies = [
 
 [[package]]
 name = "request-interface"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
- "flux-sdk 0.2.3",
+ "flux-sdk 0.2.4 (git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=433b3297eaac4600b8c8a8bb2673081480379511)",
  "near-sdk",
  "serde",
 ]
