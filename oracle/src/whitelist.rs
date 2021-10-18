@@ -28,15 +28,7 @@ impl Whitelist {
     }
 
     pub fn contains(&self, requester: AccountId) -> bool {
-        match self
-            .0
-            .as_ref()
-            .expect("No whitelist initiated")
-            .get(&requester)
-        {
-            None => false,
-            _ => true,
-        }
+        self.0.as_ref().unwrap().contains_key(&requester)
     }
 
     pub fn get_stake_multiplier(&self, requester: &AccountId) -> Option<u16> {
