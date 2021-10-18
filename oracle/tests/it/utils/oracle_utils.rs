@@ -1,11 +1,11 @@
 use crate::utils::*;
 use flux_sdk::{
-    config::{ OracleConfig, FeeConfig },
-    requester::Requester
+    config::{FeeConfig, OracleConfig},
+    requester::Requester,
 };
 
 pub struct OracleUtils {
-    pub contract: ContractAccount<OracleContract>
+    pub contract: ContractAccount<OracleContract>,
 }
 
 fn new_registry_entry(contract_id: String, stake_multiplier: Option<u16>) -> Requester {
@@ -13,7 +13,7 @@ fn new_registry_entry(contract_id: String, stake_multiplier: Option<u16>) -> Req
         code_base_url: None,
         account_id: contract_id,
         contract_name: "test".to_string(),
-        stake_multiplier
+        stake_multiplier,
     }
 }
 
@@ -22,8 +22,8 @@ impl OracleUtils {
         master_account: &TestAccount,
         validity_bond: u128,
         final_arbitrator_invoke_amount: u128,
-        stake_multiplier: Option<u16>
-    ) -> Self {        
+        stake_multiplier: Option<u16>,
+    ) -> Self {
         let config = OracleConfig {
             gov: "alice".to_string(),
             final_arbitrator: "alice".to_string(),
@@ -38,9 +38,9 @@ impl OracleUtils {
                 flux_market_cap: U128(50000),
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
-            }
+            },
         };
-        
+
         // deploy token
         let contract = deploy!(
             // Contract Proxy
@@ -55,19 +55,21 @@ impl OracleUtils {
             // init method
             init_method: new(
                 Some(vec![
-                        new_registry_entry(REQUESTER_CONTRACT_ID.to_string(), stake_multiplier), 
+                        new_registry_entry(REQUESTER_CONTRACT_ID.to_string(), stake_multiplier),
                         new_registry_entry(REQUESTER_CONTRACT_ID.to_string(), stake_multiplier)
                     ]
-                ), 
+                ),
                 config
             )
         );
 
-        storage_deposit(TOKEN_CONTRACT_ID, &master_account.account, SAFE_STORAGE_AMOUNT, Some(ORACLE_CONTRACT_ID.to_string()));
+        storage_deposit(
+            TOKEN_CONTRACT_ID,
+            &master_account.account,
+            SAFE_STORAGE_AMOUNT,
+            Some(ORACLE_CONTRACT_ID.to_string()),
+        );
 
-
-        Self {
-            contract
-        }
+        Self { contract }
     }
 }

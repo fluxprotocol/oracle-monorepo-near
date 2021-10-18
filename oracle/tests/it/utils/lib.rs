@@ -1,38 +1,29 @@
 #![allow(clippy::needless_pass_by_value)]
+use flux_sdk::{consts::PERCENTAGE_DIVISOR, outcome::Outcome};
 use near_sdk::{
-    AccountId,
     json_types::{
-        U64,
         U128,
         // ValidAccountId
+        U64,
     },
     serde_json::json,
     // serde_json
+    AccountId,
 };
 pub use near_sdk_sim::{
-    ExecutionResult,
-    deploy, 
-    init_simulator, 
-    to_yocto, 
-    ContractAccount, 
-    UserAccount, 
-    DEFAULT_GAS
-};
-use flux_sdk::{
-    consts::PERCENTAGE_DIVISOR,
-    outcome::Outcome,
+    deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount, DEFAULT_GAS,
 };
 mod account_utils;
-mod oracle_utils;
-mod token_utils;
-mod requester_contract_utils;
 mod deposit;
+mod oracle_utils;
+mod requester_contract_utils;
+mod token_utils;
 
 // pub use account_utils::*;
 extern crate oracle;
-pub use oracle::*;
 pub use account_utils::*;
 use deposit::*;
+pub use oracle::*;
 use request_interface;
 use token;
 use uint::construct_uint;
@@ -61,7 +52,11 @@ pub fn calc_product(a: u128, b: u128, divisor: u128) -> u128 {
 }
 
 pub fn calc_bond_size(validity_bond: u128, round: u32, multiplier: Option<u16>) -> u128 {
-    calc_product(validity_bond * 2u128.pow(round+1), multiplier.unwrap_or(10000).into(), PERCENTAGE_DIVISOR.into())
+    calc_product(
+        validity_bond * 2u128.pow(round + 1),
+        multiplier.unwrap_or(10000).into(),
+        PERCENTAGE_DIVISOR.into(),
+    )
 }
 
 // Load in contract bytes
@@ -89,25 +84,27 @@ pub struct TestUtils {
 pub struct TestSetupArgs {
     pub stake_multiplier: Option<u16>,
     pub validity_bond: u128,
-    pub final_arbitrator_invoke_amount: u128
+    pub final_arbitrator_invoke_amount: u128,
 }
 
 impl TestUtils {
-    pub fn init(
-        test_setup_args: Option<TestSetupArgs>
-    ) -> Self {
-        let args = test_setup_args.unwrap_or(
-            TestSetupArgs {
-                stake_multiplier: None,
-                validity_bond: VALIDITY_BOND,
-                final_arbitrator_invoke_amount: 2500
-            }
-        );
+    pub fn init(test_setup_args: Option<TestSetupArgs>) -> Self {
+        let args = test_setup_args.unwrap_or(TestSetupArgs {
+            stake_multiplier: None,
+            validity_bond: VALIDITY_BOND,
+            final_arbitrator_invoke_amount: 2500,
+        });
 
         let master_account = TestAccount::new(None, None);
         let token_init_res = token_utils::TokenUtils::new(&master_account); // Init token
-        let oracle_init_res = oracle_utils::OracleUtils::new(&master_account, args.validity_bond, args.final_arbitrator_invoke_amount, args.stake_multiplier);  // Init oracle
-        let requester_contract_init_res = requester_contract_utils::RequesterContractUtils::new(&master_account);
+        let oracle_init_res = oracle_utils::OracleUtils::new(
+            &master_account,
+            args.validity_bond,
+            args.final_arbitrator_invoke_amount,
+            args.stake_multiplier,
+        ); // Init oracle
+        let requester_contract_init_res =
+            requester_contract_utils::RequesterContractUtils::new(&master_account);
 
         Self {
             alice: TestAccount::new(Some(&master_account.account), Some("alice")),
@@ -121,8 +118,7 @@ impl TestUtils {
             master_account: master_account,
             requester_contract: requester_contract_init_res.contract,
             oracle_contract: oracle_init_res.contract,
-            token_contract: token_init_res.contract
+            token_contract: token_init_res.contract,
         }
     }
 }
-

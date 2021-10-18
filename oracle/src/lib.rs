@@ -1,44 +1,38 @@
 #![allow(clippy::too_many_arguments)]
 
 use near_sdk::{
-    AccountId,
-    Balance, 
+    borsh::{self, BorshDeserialize, BorshSerialize},
+    collections::{LookupMap, Vector},
     env,
-    near_bindgen,
-    borsh::{ self, BorshDeserialize, BorshSerialize },
-    collections::{ Vector, LookupMap },
-    json_types::U128
+    json_types::U128,
+    near_bindgen, AccountId, Balance,
 };
 
 near_sdk::setup_alloc!();
 
-mod resolution_window;
-pub mod data_request;
-mod requester_handler;
-mod fungible_token_receiver;
 pub mod callback_args;
-pub mod whitelist;
-pub mod oracle_config;
-mod storage_manager;
+pub mod data_request;
+pub mod fee_config;
+mod fungible_token_receiver;
 mod helpers;
 mod logger;
+pub mod oracle_config;
+mod requester_handler;
+mod resolution_window;
+mod storage_manager;
 mod upgrade;
-pub mod fee_config;
+pub mod whitelist;
 
 /// Mocks
 mod fungible_token;
 
 pub use callback_args::*;
 
+use flux_sdk::{config::OracleConfig, data_request::DataRequest, requester::Requester};
 use storage_manager::AccountStorageBalance;
-use flux_sdk::{
-    data_request::DataRequest,
-    config::OracleConfig,
-    requester::Requester,
-};
 
 #[near_bindgen]
-#[derive(BorshSerialize, BorshDeserialize )]
+#[derive(BorshSerialize, BorshDeserialize)]
 pub struct Contract {
     pub whitelist: whitelist::Whitelist,
     pub configs: Vector<OracleConfig>,
@@ -55,10 +49,7 @@ impl Default for Contract {
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(
-        initial_whitelist: Option<Vec<Requester>>,
-        config: OracleConfig,
-    ) -> Self {
+    pub fn new(initial_whitelist: Option<Vec<Requester>>, config: OracleConfig) -> Self {
         let mut configs = Vector::new(b"c".to_vec());
         configs.push(&config);
         logger::log_oracle_config(&config, 0);

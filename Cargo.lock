@@ -929,6 +929,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "flux-sdk"
+version = "0.2.4"
+source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=f53105815f5d063b58ab8c25f025823e8301d896#f53105815f5d063b58ab8c25f025823e8301d896"
+dependencies = [
+ "near-sdk",
+ "serde",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1894,7 +1903,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 name = "oracle"
 version = "0.1.0"
 dependencies = [
- "flux-sdk",
+ "flux-sdk 0.2.4",
  "near-sdk",
  "near-sdk-sim",
  "request-interface",
@@ -2380,7 +2389,7 @@ dependencies = [
 name = "request-interface"
 version = "0.2.0"
 dependencies = [
- "flux-sdk",
+ "flux-sdk 0.2.3",
  "near-sdk",
  "serde",
 ]

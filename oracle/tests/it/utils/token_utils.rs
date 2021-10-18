@@ -1,6 +1,6 @@
 use crate::utils::*;
 pub struct TokenUtils {
-    pub contract: ContractAccount<TokenContract>
+    pub contract: ContractAccount<TokenContract>,
 }
 
 impl TokenUtils {
@@ -20,8 +20,6 @@ impl TokenUtils {
             init_method: new()
         );
 
-        Self {
-            contract
-        }
+        Self { contract }
     }
 }

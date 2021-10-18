@@ -1,11 +1,5 @@
+use near_sdk::{env, AccountId, Balance, Promise, StorageUsage};
 use uint::construct_uint;
-use near_sdk::{
-    env,
-    StorageUsage,
-    AccountId, 
-    Balance,
-    Promise
-};
 
 const STORAGE_PRICE_PER_BYTE: Balance = 100_000_000_000_000_000_000;
 
@@ -37,8 +31,7 @@ pub fn refund_storage(initial_storage: StorageUsage, sender_id: AccountId) {
         );
         attached_deposit - required_deposit
     } else {
-        attached_deposit
-            + Balance::from(initial_storage - current_storage) * STORAGE_PRICE_PER_BYTE
+        attached_deposit + Balance::from(initial_storage - current_storage) * STORAGE_PRICE_PER_BYTE
     };
     if refund_amount > 0 {
         Promise::new(sender_id).transfer(refund_amount);
@@ -54,7 +47,7 @@ pub fn multiply_stake(stake: u128, multiplier: Option<u16>) -> u128 {
         Some(m) => {
             let base = 10_000_u128;
             stake * m as u128 / base
-        },
-        None => stake
+        }
+        None => stake,
     }
 }

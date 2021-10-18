@@ -1,12 +1,12 @@
-use crate::*;
 use crate::requester_handler::RequesterHandler;
-use near_sdk::{
-    borsh::{ self, BorshDeserialize, BorshSerialize },
-    AccountId,
-    collections::LookupMap
-};
+use crate::*;
 use flux_sdk::requester::Requester;
-   
+use near_sdk::{
+    borsh::{self, BorshDeserialize, BorshSerialize},
+    collections::LookupMap,
+    AccountId,
+};
+
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct Whitelist(Option<LookupMap<AccountId, Requester>>); // maps requester account id to requesters config
 
@@ -22,33 +22,39 @@ impl Whitelist {
                     logger::log_whitelist(&requester, true);
                 }
                 Self(Some(whitelist))
-            }, 
-            None => Self(None)
+            }
+            None => Self(None),
         }
     }
 
     pub fn contains(&self, requester: AccountId) -> bool {
-        match self.0.as_ref().expect("No whitelist initiated").get(&requester) {
+        match self
+            .0
+            .as_ref()
+            .expect("No whitelist initiated")
+            .get(&requester)
+        {
             None => false,
-            _ => true
+            _ => true,
         }
     }
 
     pub fn get_stake_multiplier(&self, requester: &AccountId) -> Option<u16> {
         match &self.0 {
             Some(whitelist) => {
-                whitelist.get(requester).expect("not whitelisted").stake_multiplier
-            },
-            None => None
+                whitelist
+                    .get(requester)
+                    .expect("not whitelisted")
+                    .stake_multiplier
+            }
+            None => None,
         }
     }
 
     pub fn whitelist_get_expect(&self, requester: &AccountId) -> Requester {
         match &self.0 {
-            Some(whitelist) => {
-                whitelist.get(requester).expect("requester not whitelisted")
-            }, 
-            None => RequesterHandler::new_no_whitelist(requester)
+            Some(whitelist) => whitelist.get(requester).expect("requester not whitelisted"),
+            None => RequesterHandler::new_no_whitelist(requester),
         }
     }
 }
@@ -61,15 +67,13 @@ trait WhitelistHandler {
 
 #[near_bindgen]
 impl WhitelistHandler for Contract {
-    
     #[payable]
     fn add_to_whitelist(&mut self, new_requester: Requester) {
         self.assert_gov();
 
-
         match new_requester.stake_multiplier {
             Some(m) => assert!(m > 0, "stake multiplier can't be 0"),
-            _ => ()
+            _ => (),
         };
 
         let initial_storage = env::storage_usage();
@@ -77,14 +81,15 @@ impl WhitelistHandler for Contract {
         match &mut self.whitelist.0 {
             Some(whitelist) => {
                 whitelist.insert(&new_requester.account_id, &new_requester);
-            }, 
+            }
             None => {
-                let mut whitelist: LookupMap<AccountId, Requester> = LookupMap::new(b"wlr".to_vec());
+                let mut whitelist: LookupMap<AccountId, Requester> =
+                    LookupMap::new(b"wlr".to_vec());
                 whitelist.insert(&new_requester.account_id, &new_requester);
                 self.whitelist = Whitelist(Some(whitelist));
             }
         };
-      
+
         logger::log_whitelist(&new_requester, true);
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
     }
@@ -98,11 +103,10 @@ impl WhitelistHandler for Contract {
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
         logger::log_whitelist(&requester, false);
 
-
         match &mut self.whitelist.0 {
             Some(whitelist) => {
                 whitelist.remove(&requester.account_id);
-            }, 
+            }
             None => {
                 panic!("Uninitiated whitelist")
             }
@@ -115,30 +119,25 @@ impl WhitelistHandler for Contract {
 }
 
 impl Contract {
-
-
     pub fn assert_whitelisted(&self, requester: AccountId) {
         match self.whitelist.0 {
             Some(_) => {
-                assert!(self.whitelist_contains(requester), "Err predecessor is not whitelisted");
-            }, 
-            None => ()
+                assert!(
+                    self.whitelist_contains(requester),
+                    "Err predecessor is not whitelisted"
+                );
+            }
+            None => (),
         }
     }
 }
 
-
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {
-    use near_sdk::{
-        json_types::U64,
-        MockedBlockchain,
-        testing_env,
-        VMContext
-    };
-    use flux_sdk::config::FeeConfig;
     use super::*;
+    use flux_sdk::config::FeeConfig;
+    use near_sdk::{json_types::U64, testing_env, MockedBlockchain, VMContext};
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -165,7 +164,7 @@ mod mock_token_basic_tests {
             contract_name: account.clone(),
             account_id: account.clone(),
             stake_multiplier: None,
-            code_base_url: None
+            code_base_url: None,
         }
     }
 
@@ -184,7 +183,7 @@ mod mock_token_basic_tests {
                 flux_market_cap: U128(50000),
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
-            }
+            },
         }
     }
 

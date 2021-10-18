@@ -161,7 +161,7 @@ impl FungibleTokenResolver for TokenContract {
         assert_self();
         let amount: Balance = amount.into();
 
-        // Get the unused amount from the `ft_on_transfer` call result.    
+        // Get the unused amount from the `ft_on_transfer` call result.
         let unused_amount = match env::promise_result(0) {
             PromiseResult::NotReady => unreachable!(),
             PromiseResult::Successful(value) => {
