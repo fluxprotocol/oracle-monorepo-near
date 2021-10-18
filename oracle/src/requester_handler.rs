@@ -2,17 +2,15 @@ use crate::*;
 use near_sdk::{
     PromiseOrValue,
     ext_contract, 
-    Gas,
     Promise
 };
 use flux_sdk::{
     data_request::NewDataRequestArgs,
     outcome::Outcome,
     types::WrappedBalance,
-    requester::Requester
+    requester::Requester,
+    consts::GAS_BASE_SET_OUTCOME
 };
-
-const GAS_BASE_SET_OUTCOME: Gas = 250_000_000_000_000;
 
 #[ext_contract]
 pub trait RequesterContractExtern {

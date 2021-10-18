@@ -1,4 +1,5 @@
 use crate::utils::*;
+use flux_sdk::consts::MAX_GAS;
 
 pub fn storage_deposit(
     receiver: &str, 
@@ -12,7 +13,7 @@ pub fn storage_deposit(
         json!({
             "account_id": to_register
         }).to_string().as_bytes(),
-        DEFAULT_GAS,
+        MAX_GAS,
         deposit
     );
 
@@ -24,7 +25,7 @@ pub fn near_deposit(sender: &UserAccount, deposit: u128) {
         TOKEN_CONTRACT_ID.to_string(),
         "near_deposit",
         json!({}).to_string().as_bytes(),
-        DEFAULT_GAS,
+        MAX_GAS,
         deposit
     );
     assert!(res.is_ok(), "wnear deposit failed with res: {:?}", res);

@@ -1,6 +1,7 @@
 use crate::utils::*;
 use flux_sdk::{
-    data_request::{ NewDataRequestArgs, DataRequestDataType }
+    data_request::{ NewDataRequestArgs, DataRequestDataType },
+    consts::MAX_GAS
 };
 pub fn init_balance() -> u128 {
     to_yocto("100000")
@@ -65,7 +66,7 @@ impl TestAccount {
             json!({
                 "dr_id": U64(id)
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             0
         ).unwrap_json()
     }
@@ -85,7 +86,7 @@ impl TestAccount {
                 "receiver_id": REQUESTER_CONTRACT_ID,
                 "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             1
         );
         assert!(transfer_res.is_ok(), "ft_transfer_call failed with res: {:?}", transfer_res);
@@ -104,7 +105,7 @@ impl TestAccount {
                     data_type: DataRequestDataType::String,
                 }
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             0
         );
 
@@ -139,7 +140,7 @@ impl TestAccount {
             json!({
                 "request_id": U64(dr_id)
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             0
         );
 
@@ -159,7 +160,7 @@ impl TestAccount {
                 "request_id": U64(dr_id),
                 "outcome": outcome
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             1600000000000000000000
         );
 
@@ -178,7 +179,7 @@ impl TestAccount {
                 "account_id": self.account.account_id(),
                 "request_id": U64(dr_id)
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             1000000000000000000000
         );
 
@@ -201,7 +202,7 @@ impl TestAccount {
                 "msg": msg,
                 "memo": "".to_string()
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             1
         );
 
@@ -221,7 +222,7 @@ impl TestAccount {
                 "receiver_id": receiver,
                 "amount": U128(amount),
             }).to_string().as_bytes(),
-            DEFAULT_GAS,
+            MAX_GAS,
             1
         );
 
