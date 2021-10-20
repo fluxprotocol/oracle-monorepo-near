@@ -1,12 +1,21 @@
 use crate::*;
+use near_sdk::{
+    serde::{ Serialize, Deserialize },
+    serde_json,
+    env,
+    PromiseOrValue,
+    json_types::ValidAccountId,
+    near_bindgen,
+};
+use near_contract_standards::
+    fungible_token::
+    receiver::
+    FungibleTokenReceiver;
 use flux_sdk::{
     data_request::{NewDataRequestArgs, StakeDataRequestArgs},
     types::WrappedBalance,
 };
-use near_sdk::{
-    serde::{Deserialize, Serialize},
-    serde_json, PromiseOrValue,
-};
+
 
 #[derive(Serialize, Deserialize)]
 pub enum Payload {
@@ -14,40 +23,34 @@ pub enum Payload {
     StakeDataRequest(StakeDataRequestArgs),
 }
 
-pub trait FungibleTokenReceiver {
-    // @returns amount of unused tokens
-    fn ft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        amount: U128,
-        msg: String,
-    ) -> PromiseOrValue<WrappedBalance>;
-}
-
 #[near_bindgen]
 impl FungibleTokenReceiver for Contract {
     // @returns amount of unused tokens
     fn ft_on_transfer(
         &mut self,
-        sender_id: AccountId,
+        sender_id: ValidAccountId,
         amount: U128,
         msg: String,
     ) -> PromiseOrValue<WrappedBalance> {
+        let sender: &AccountId = sender_id.as_ref();
         let initial_storage_usage = env::storage_usage();
-        let account = self.get_storage_account(&sender_id);
+        let account = self.get_storage_account(&sender);
 
-        let payload: Payload =
-            serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
+        let payload: Payload = serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
+        let config = self.get_config();
+
         let unspent = match payload {
-            Payload::NewDataRequest(payload) => self
-                .ft_dr_new_callback(sender_id.clone(), amount.into(), payload)
-                .into(),
+            Payload::NewDataRequest(payload) => {
+                assert_eq!(config.payment_token, env::predecessor_account_id(), "ERR_WRONG_PAYMENT_TOKEN");
+                self.ft_dr_new_callback(sender.clone(), amount.into(), payload).into()
+            },
             Payload::StakeDataRequest(payload) => {
-                self.dr_stake(sender_id.clone(), amount.into(), payload)
-            }
+                assert_eq!(config.stake_token, env::predecessor_account_id(), "ERR_WRONG_STAKE_TOKEN");
+                self.dr_stake(sender.clone(), amount.into(), payload)
+            },
         };
 
-        self.use_storage(&sender_id, initial_storage_usage, account.available);
+        self.use_storage(&sender, initial_storage_usage, account.available);
 
         unspent
     }
@@ -170,7 +173,7 @@ mod mock_token_basic_tests {
                 "outcome": Outcome::Answer(AnswerType::String("a".to_string()))
             }
         });
-        contract.ft_on_transfer(alice(), U128(100), msg.to_string());
+        contract.ft_on_transfer(alice().try_into().unwrap(), U128(100), msg.to_string());
     }
 
     #[test]
@@ -206,7 +209,7 @@ mod mock_token_basic_tests {
                 "outcome": Outcome::Answer(AnswerType::String("a".to_string()))
             }
         });
-        contract.ft_on_transfer(alice(), U128(100), msg.to_string());
+        contract.ft_on_transfer(alice().try_into().unwrap(), U128(100), msg.to_string());
 
         let account = contract.accounts.get(&alice());
         assert!(account.unwrap().available < storage_start);

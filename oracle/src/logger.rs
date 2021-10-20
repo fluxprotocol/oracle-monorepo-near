@@ -1,8 +1,8 @@
 use crate::helpers::ns_to_ms;
 use flux_sdk::{
-    config::OracleConfig,
     data_request::ActiveDataRequest,
     data_request::FinalizedDataRequest,
+    config::OracleConfig,
     outcome::{AnswerType, Outcome},
     requester::Requester,
     resolution_window::ResolutionWindow,

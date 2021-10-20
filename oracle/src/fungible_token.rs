@@ -13,6 +13,9 @@ pub fn fungible_token_transfer(
     receiver_id: AccountId,
     value: u128,
 ) -> Promise {
+    // AUDIT: When calling this without a callback, you need to be sure the storage is registered
+    //     for the receiver. Otherwise the transfer will fail and the funds will be returned to this
+    //     contract.
     fungible_token::ft_transfer(
         receiver_id,
         U128(value),

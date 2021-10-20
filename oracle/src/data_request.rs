@@ -13,7 +13,7 @@ use flux_sdk::{
         FinalizedDataRequestSummary, NewDataRequestArgs, StakeDataRequestArgs,
     },
     outcome::{AnswerType, Outcome},
-    resolution_window::{ResolutionWindowSummary, WindowStakeResult},
+    resolution_window::{ResolutionWindowSummary, WindowStakeResult, ResolutionWindow},
     types::WrappedBalance,
 };
 use near_sdk::{
@@ -133,17 +133,16 @@ impl ActiveDataRequestChange for ActiveDataRequest {
     }
 
     // @returns amount of tokens that didn't get staked
-    fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
-        let mut window = self.resolution_windows.iter().last().unwrap_or_else(|| {
-            ResolutionWindowHandler::new(
-                self.id,
-                0,
-                self.calc_resolution_bond(),
-                self.initial_challenge_period,
-                env::block_timestamp(),
-            )
-        });
-
+    fn stake(&mut self,
+        sender: AccountId,
+        outcome: Outcome,
+        amount: Balance
+    ) -> Balance {
+        let mut window : ResolutionWindow = match self.resolution_windows.len() {
+            0 => ResolutionWindowHandler::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp()),
+            _ => self.resolution_windows.get(self.resolution_windows.len() - 1).unwrap()
+        };
+        
         let unspent = window.stake(sender, outcome, amount);
 
         // If first window push it to vec, else replace updated window struct
@@ -171,7 +170,7 @@ impl ActiveDataRequestChange for ActiveDataRequest {
         unspent
     }
 
-    // @returns wether final arbitrator was triggered
+    // @returns whether final arbitrator was triggered
     fn invoke_final_arbitrator(&mut self, bond_size: Balance) -> bool {
         let should_invoke = bond_size >= self.request_config.final_arbitrator_invoke_amount;
         if should_invoke {
@@ -237,75 +236,80 @@ impl FinalizedDataRequestMethods for FinalizedDataRequest {
         self.finalized_outcome = final_outcome;
     }
 
-    // @notice Return what's left of validity_bond to requester
-    fn return_validity_bond(
-        &self,
-        token: AccountId,
-        requester: AccountId,
-        validity_bond: u128,
-    ) -> PromiseOrValue<bool> {
-        match self.finalized_outcome {
-            Outcome::Answer(_) => {
-                PromiseOrValue::Promise(fungible_token_transfer(token, requester, validity_bond))
-            }
-            Outcome::Invalid => PromiseOrValue::Value(false),
-        }
-    }
-
-    fn claim(&mut self, account_id: String) -> ClaimRes {
-        // Metrics for calculating payout
-        let mut total_correct_staked = 0;
-        let mut total_incorrect_staked = 0;
-        let mut user_correct_stake = 0;
-
-        // For any round after the resolution round handle generically
-        for round in 0..self.resolution_windows.len() {
-            let mut window = self.resolution_windows.get(round).unwrap();
-            let stake_state: WindowStakeResult =
-                window.claim_for(account_id.to_string(), &self.finalized_outcome);
-            match stake_state {
-                WindowStakeResult::Correct(correctly_staked) => {
-                    total_correct_staked += correctly_staked.bonded_stake;
-                    user_correct_stake += correctly_staked.user_stake;
+        // @notice Return what's left of validity_bond to requester
+        fn return_validity_bond(
+            &self,
+            token: AccountId,
+            requester: AccountId,
+            validity_bond: u128,
+        ) -> PromiseOrValue<bool> {
+            match self.finalized_outcome {
+                Outcome::Answer(_) => {
+                    PromiseOrValue::Promise(fungible_token_transfer(token, requester, validity_bond))
                 }
-                WindowStakeResult::Incorrect(incorrectly_staked) => {
-                    total_incorrect_staked += incorrectly_staked
-                }
-                WindowStakeResult::NoResult => (),
+                Outcome::Invalid => PromiseOrValue::Value(false),
             }
-
-            self.resolution_windows.replace(round as u64, &window);
         }
-
-        let stake_profit = match total_correct_staked {
-            0 => 0,
-            _ => helpers::calc_product(
-                user_correct_stake,
-                total_incorrect_staked,
+    
+        fn claim(&mut self, account_id: String) -> ClaimRes {
+            // Metrics for calculating payout
+            let mut total_correct_staked = 0;
+            let mut total_incorrect_staked = 0;
+            let mut user_correct_stake = 0;
+    
+            // For any round after the resolution round handle generically
+            // AUDIT: This may run out gas, if the number of windows is too large, because you iterate
+            //     through all windows.
+            // SOLUTION: See if more expensive to iterate through resolution windows than it is to
+            // store aggregate of amount of stake for each user alongside resolution windows and amount they have staked in
+            for round in 0..self.resolution_windows.len() {
+                let mut window = self.resolution_windows.get(round).unwrap();
+                let stake_state: WindowStakeResult =
+                    window.claim_for(account_id.to_string(), &self.finalized_outcome);
+                match stake_state {
+                    WindowStakeResult::Correct(correctly_staked) => {
+                        total_correct_staked += correctly_staked.bonded_stake;
+                        user_correct_stake += correctly_staked.user_stake;
+                    }
+                    WindowStakeResult::Incorrect(incorrectly_staked) => {
+                        total_incorrect_staked += incorrectly_staked
+                    }
+                    WindowStakeResult::NoResult => (),
+                }
+    
+                self.resolution_windows.replace(round as u64, &window);
+            }
+    
+            let stake_profit = match total_correct_staked {
+                0 => 0,
+                _ => helpers::calc_product(
+                    user_correct_stake,
+                    total_incorrect_staked,
+                    total_correct_staked,
+                ),
+            };
+    
+            let fee_profit = match total_correct_staked {
+                0 => 0,
+                _ => helpers::calc_product(user_correct_stake, self.paid_fee, total_correct_staked),
+            };
+    
+            logger::log_claim(
+                &account_id,
+                self.id,
                 total_correct_staked,
-            ),
-        };
-
-        let fee_profit = match total_correct_staked {
-            0 => 0,
-            _ => helpers::calc_product(user_correct_stake, self.paid_fee, total_correct_staked),
-        };
-
-        logger::log_claim(
-            &account_id,
-            self.id,
-            total_correct_staked,
-            total_incorrect_staked,
-            user_correct_stake,
-            stake_profit,
-            fee_profit,
-        );
-
-        ClaimRes {
-            payment_token_payout: fee_profit,
-            stake_token_payout: user_correct_stake + stake_profit,
+                total_incorrect_staked,
+                user_correct_stake,
+                stake_profit,
+                fee_profit,
+            );
+    
+            ClaimRes {
+                payment_token_payout: fee_profit,
+                stake_token_payout: user_correct_stake + stake_profit,
+            }
         }
-    }
+    
 }
 
 trait ActiveDataRequestView {
@@ -523,6 +527,8 @@ impl Contract {
         0
     }
 
+    // AUDIT: `dr_stake` doesn't handle storage, but `dr_unstake` does. Make it consistent.
+    // SOLUTION: handle storage here
     #[payable]
     pub fn dr_stake(
         &mut self,
@@ -662,15 +668,15 @@ impl Contract {
         let config = self.configs.get(dr.global_config_id).unwrap();
         dr.requester.set_outcome(outcome.clone(), dr.tags.clone());
         let fdr = self.trim_dr(dr, outcome);
-
+        
         logger::log_update_finalized_data_request(&fdr);
         let promise = fdr.return_validity_bond(config.payment_token, requester, validity_bond);
 
-        self.data_requests
-            .replace(request_id.into(), &DataRequest::Finalized(fdr));
+        self.data_requests.replace(request_id.into(), &DataRequest::Finalized(fdr));
 
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
         promise
+
     }
 
     fn dr_get_expect(&self, id: U64) -> DataRequest {
@@ -2277,17 +2283,14 @@ mod mock_token_basic_tests {
             DataRequestSummary::Active(s) => assert_eq!(s.id, U64(2)),
             DataRequestSummary::Finalized(_) => panic!("expected `DataRequest` to be active"),
         }
-
         match contract.get_request_by_id(U64(1)).unwrap() {
             DataRequestSummary::Active(s) => assert_eq!(s.id, U64(1)),
             DataRequestSummary::Finalized(_) => panic!("expected `DataRequest` to be active"),
         }
-
         match &contract.get_requests(U64(0), U64(1))[0] {
             DataRequestSummary::Active(s) => assert_eq!(s.id, U64(0)),
             DataRequestSummary::Finalized(_) => panic!("expected `DataRequest` to be active"),
         }
-
         assert_eq!(contract.get_requests(U64(1), U64(1)).len(), 1);
         assert_eq!(contract.get_requests(U64(1), U64(2)).len(), 2);
         assert_eq!(contract.get_requests(U64(0), U64(3)).len(), 3);

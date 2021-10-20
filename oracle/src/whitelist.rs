@@ -91,10 +91,7 @@ impl WhitelistHandler for Contract {
         self.assert_gov();
 
         let initial_storage = env::storage_usage();
-
-        helpers::refund_storage(initial_storage, env::predecessor_account_id());
         logger::log_whitelist(&requester, false);
-
         match &mut self.whitelist.0 {
             Some(whitelist) => {
                 whitelist.remove(&requester.account_id);
@@ -103,6 +100,8 @@ impl WhitelistHandler for Contract {
                 panic!("Uninitiated whitelist")
             }
         };
+
+        helpers::refund_storage(initial_storage, env::predecessor_account_id());
     }
 
     fn whitelist_contains(&self, requester: AccountId) -> bool {
