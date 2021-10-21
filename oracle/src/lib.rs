@@ -38,6 +38,7 @@ pub struct Contract {
     pub configs: Vector<OracleConfig>,
     pub data_requests: Vector<DataRequest>,
     pub accounts: LookupMap<AccountId, AccountStorageBalance>, // storage map
+    pub paused: bool
 }
 
 impl Default for Contract {
@@ -59,6 +60,7 @@ impl Contract {
             configs,
             data_requests: Vector::new(b"dr".to_vec()),
             accounts: LookupMap::new(b"a".to_vec()),
+            paused: false
         }
     }
 }
@@ -71,6 +73,17 @@ impl Contract {
             env::predecessor_account_id(),
             "This method is only callable by the governance contract {}",
             config.gov
+        );
+    }
+    pub fn assert_unpaused(&self) {
+        assert!(!self.paused, "Oracle is paused");
+    }
+    pub fn assert_sender(&self, expected_sender: &AccountId) {
+        assert_eq!(
+            &env::predecessor_account_id(),
+            expected_sender,
+            "This function can only be called by {}",
+            expected_sender
         );
     }
 }

@@ -1,6 +1,5 @@
 use crate::*;
 use flux_sdk::config::OracleConfig;
-use near_sdk::AccountId;
 
 #[near_bindgen]
 impl Contract {
@@ -21,16 +20,10 @@ impl Contract {
         logger::log_oracle_config(&new_config, self.configs.len() - 1);
         helpers::refund_storage(initial_storage, env::predecessor_account_id());
     }
-}
 
-impl Contract {
-    pub fn assert_sender(&self, expected_sender: &AccountId) {
-        assert_eq!(
-            &env::predecessor_account_id(),
-            expected_sender,
-            "This function can only be called by {}",
-            expected_sender
-        );
+    pub fn toggle_pause(&mut self) {
+        self.assert_gov();
+        self.paused = !self.paused;
     }
 }
 
