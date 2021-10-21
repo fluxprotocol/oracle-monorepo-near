@@ -496,6 +496,7 @@ impl Contract {
         amount: Balance,
         payload: NewDataRequestArgs,
     ) -> Balance {
+        self.assert_unpaused();
         let config = self.get_config();
         let validity_bond: u128 = config.validity_bond.into();
         self.assert_whitelisted(sender.to_string());
@@ -536,6 +537,7 @@ impl Contract {
         amount: Balance,
         payload: StakeDataRequestArgs,
     ) -> PromiseOrValue<WrappedBalance> {
+        self.assert_unpaused();
         let mut dr = self.dr_get_expect_active(payload.id.into());
         let config = self.configs.get(dr.global_config_id).unwrap();
         self.assert_sender(&config.stake_token);
@@ -560,6 +562,7 @@ impl Contract {
         outcome: Outcome,
         amount: U128,
     ) {
+        self.assert_unpaused();
         let initial_storage = env::storage_usage();
 
         let mut dr = self.dr_get_expect(request_id.into());
@@ -583,6 +586,7 @@ impl Contract {
 
     #[payable]
     pub fn dr_claim(&mut self, account_id: String, request_id: U64) -> Promise {
+        self.assert_unpaused();
         let initial_storage = env::storage_usage();
 
         let mut dr = self.dr_get_expect_finalized(request_id.into());
@@ -631,6 +635,7 @@ impl Contract {
     }
 
     pub fn dr_finalize(&mut self, request_id: U64) {
+        self.assert_unpaused();
         let dr = self.dr_get_expect_active(request_id.into());
         let requester = dr.requester.account_id.clone();
         let validity_bond = dr.request_config.validity_bond;
@@ -656,6 +661,7 @@ impl Contract {
         request_id: U64,
         outcome: Outcome,
     ) -> PromiseOrValue<bool> {
+        self.assert_unpaused();
         let initial_storage = env::storage_usage();
 
         let dr = self.dr_get_expect_active(request_id);
@@ -2294,5 +2300,29 @@ mod mock_token_basic_tests {
         assert_eq!(contract.get_requests(U64(1), U64(1)).len(), 1);
         assert_eq!(contract.get_requests(U64(1), U64(2)).len(), 2);
         assert_eq!(contract.get_requests(U64(0), U64(3)).len(), 3);
+    }
+
+    #[test]
+    #[should_panic(expected = "Oracle is paused")]
+    fn dr_pausable() {
+        testing_env!(get_context(token()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        
+        testing_env!(get_context(gov()));
+        contract.toggle_pause();
+        
+        contract.dr_new(
+            bob(),
+            100,
+            NewDataRequestArgs {
+                sources: Some(Vec::new()),
+                outcomes: None,
+                challenge_period: U64(1500),
+                description: Some("a".to_string()),
+                tags: vec!["1".to_string()],
+                data_type: data_request::DataRequestDataType::String,
+            },
+        );
     }
 }
