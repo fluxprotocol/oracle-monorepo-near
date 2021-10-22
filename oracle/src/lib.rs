@@ -58,13 +58,8 @@ impl Contract {
         Self {
             whitelist: whitelist::Whitelist::new(initial_whitelist),
             configs,
-<<<<<<< HEAD
             data_requests: Vector::new(OracleStorageKey::DataRequests),
             accounts: LookupMap::new(OracleStorageKey::Accounts),
-=======
-            data_requests: Vector::new(b"dr".to_vec()),
-            accounts: LookupMap::new(b"a".to_vec()),
->>>>>>> 4a84e79 (pausable methods by governance)
             paused: false
         }
     }
