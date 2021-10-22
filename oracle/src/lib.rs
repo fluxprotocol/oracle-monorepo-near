@@ -28,7 +28,7 @@ mod fungible_token;
 
 pub use callback_args::*;
 
-use flux_sdk::{config::OracleConfig, data_request::DataRequest, requester::Requester};
+use flux_sdk::{config::OracleConfig, data_request::DataRequest, requester::Requester, config::OracleStorageKey};
 use storage_manager::AccountStorageBalance;
 
 #[near_bindgen]
@@ -51,15 +51,15 @@ impl Default for Contract {
 impl Contract {
     #[init]
     pub fn new(initial_whitelist: Option<Vec<Requester>>, config: OracleConfig) -> Self {
-        let mut configs = Vector::new(b"c".to_vec());
+        let mut configs = Vector::new(OracleStorageKey::Configs);
         configs.push(&config);
         logger::log_oracle_config(&config, 0);
 
         Self {
             whitelist: whitelist::Whitelist::new(initial_whitelist),
             configs,
-            data_requests: Vector::new(b"dr".to_vec()),
-            accounts: LookupMap::new(b"a".to_vec()),
+            data_requests: Vector::new(OracleStorageKey::DataRequests),
+            accounts: LookupMap::new(OracleStorageKey::Accounts),
             paused: false
         }
     }
