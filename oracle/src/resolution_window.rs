@@ -13,6 +13,7 @@ pub trait ResolutionWindowHandler {
         challenge_period: u64,
         start_time: u64,
     ) -> Self;
+    fn get_user_to_outcomes(&self, sender: &AccountId) -> LookupMap<Outcome, Balance>;
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
     fn unstake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
     fn claim_for(&mut self, account_id: AccountId, final_outcome: &Outcome) -> WindowStakeResult;
@@ -32,7 +33,9 @@ impl ResolutionWindowHandler for ResolutionWindow {
             start_time,
             end_time: start_time + challenge_period,
             bond_size: prev_bond * 2,
-            outcome_to_stake: LookupMap::new(format!("ots{}:{}", dr_id, round).as_bytes().to_vec()),
+            outcome_to_stake: LookupMap::new(
+                format!("ots{}:{}", dr_id, round).as_bytes().to_vec()
+            ),
             user_to_outcome_to_stake: LookupMap::new(
                 format!("utots{}:{}", dr_id, round).as_bytes().to_vec(),
             ),
@@ -43,22 +46,20 @@ impl ResolutionWindowHandler for ResolutionWindow {
         return new_resolution_window;
     }
 
+    fn get_user_to_outcomes(&self, sender: &AccountId) -> LookupMap<Outcome, Balance> {
+        self.user_to_outcome_to_stake
+            .get(&sender)
+            .unwrap_or(LookupMap::new(
+                format!("utots:{}:{}:{}", self.dr_id, self.round, sender)
+                    .as_bytes()
+                    .to_vec(),
+            ))
+    }
+
     // @returns amount to refund users because it was not staked
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
         let stake_on_outcome = self.outcome_to_stake.get(&outcome).unwrap_or(0);
-        // AUDIT: No point of storing lookup maps, since they don't have a state except for the
-        //     `prefix`. You can always create a new lookup map, as it's done in `unwrap_or_else`
-        //     and old data will be there.
-        // SOLUTION: store in alternative way
-        let mut user_to_outcomes =
-            self.user_to_outcome_to_stake
-                .get(&sender)
-                .unwrap_or(LookupMap::new(
-                    format!("utots:{}:{}:{}", self.dr_id, self.round, sender)
-                        .as_bytes()
-                        .to_vec(),
-                ));
-        let user_stake_on_outcome = user_to_outcomes.get(&outcome).unwrap_or(0);
+        let user_stake_on_outcome = self.get_user_to_outcomes(&sender).get(&outcome).unwrap_or(0);
 
         let stake_open = self.bond_size - stake_on_outcome;
         let unspent = if amount > stake_open {
@@ -75,9 +76,9 @@ impl ResolutionWindowHandler for ResolutionWindow {
         logger::log_outcome_to_stake(self.dr_id, self.round, &outcome, new_stake_on_outcome);
 
         let new_user_stake_on_outcome = user_stake_on_outcome + staked;
-        user_to_outcomes.insert(&outcome, &new_user_stake_on_outcome);
+        self.get_user_to_outcomes(&sender).insert(&outcome, &new_user_stake_on_outcome);
         self.user_to_outcome_to_stake
-            .insert(&sender, &user_to_outcomes);
+            .insert(&sender, &self.get_user_to_outcomes(&sender));
 
         logger::log_user_stake(
             self.dr_id,
@@ -103,16 +104,7 @@ impl ResolutionWindowHandler for ResolutionWindow {
             self.bonded_outcome.is_none() || self.bonded_outcome.as_ref().unwrap() != &outcome,
             "Cannot withdraw from bonded outcome"
         );
-        // AUDIT: Refactor this to a separate method to avoid duplication of initialization.
-        let mut user_to_outcomes =
-            self.user_to_outcome_to_stake
-                .get(&sender)
-                .unwrap_or(LookupMap::new(
-                    format!("utots:{}:{}:{}", self.dr_id, self.round, sender)
-                        .as_bytes()
-                        .to_vec(),
-                ));
-        let user_stake_on_outcome = user_to_outcomes.get(&outcome).unwrap_or(0);
+        let user_stake_on_outcome = self.get_user_to_outcomes(&sender).get(&outcome).unwrap_or(0);
         assert!(
             user_stake_on_outcome >= amount,
             "{} has less staked on this outcome ({}) than unstake amount",
@@ -128,9 +120,9 @@ impl ResolutionWindowHandler for ResolutionWindow {
         logger::log_outcome_to_stake(self.dr_id, self.round, &outcome, new_stake_on_outcome);
 
         let new_user_stake_on_outcome = user_stake_on_outcome - amount;
-        user_to_outcomes.insert(&outcome, &new_user_stake_on_outcome);
+        self.get_user_to_outcomes(&sender).insert(&outcome, &new_user_stake_on_outcome);
         self.user_to_outcome_to_stake
-            .insert(&sender, &user_to_outcomes);
+            .insert(&sender, &self.get_user_to_outcomes(&sender));
         logger::log_user_stake(
             self.dr_id,
             self.round,
