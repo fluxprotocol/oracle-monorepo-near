@@ -5,8 +5,6 @@ use near_sdk::Promise;
 
 /// Price per 1 byte of storage from mainnet config after `0.18` release and protocol version `42`.
 /// It's 10 times lower than the genesis price.
-// AUDIT: Use `env::STORAGE_PRICE_PER_BYTE`
-pub const STORAGE_PRICE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
 
 pub const STORAGE_MINIMUM_BALANCE: Balance = 10_000_000_000_000_000_000_000;
 
@@ -58,8 +56,12 @@ impl StorageManager for Contract {
             .unwrap_or_else(|| env::predecessor_account_id());
 
         let mut account = self.get_storage_account(&account_id);
-        // AUDIT: Validate that the amount is at least the amount to store `AccountStorageBalance`.
-        //     otherwise people can deposit 1 yocto and drain contract storage.
+        assert!(
+            amount >= STORAGE_MINIMUM_BALANCE,
+            "Deposit must be at least {} yoctoNEAR",
+            STORAGE_MINIMUM_BALANCE
+        );
+
         account.available += amount;
         account.total += amount;
 
@@ -78,7 +80,11 @@ impl StorageManager for Contract {
         let account_id = env::predecessor_account_id();
         let mut account = self.get_storage_account(&account_id);
 
-        // AUDIT: Verify amount >= account.available
+        assert!(
+            amount <= account.available,
+            "Not enough storage available"
+        );
+
         account.available -= amount;
         account.total -= amount;
 
@@ -129,7 +135,7 @@ impl Contract {
             // used more storage, deduct from balance
             let difference: u128 = u128::from(env::storage_usage() - initial_storage_usage);
             let mut account = self.get_storage_account(sender_id);
-            let cost = difference * STORAGE_PRICE_PER_BYTE;
+            let cost = difference * env::STORAGE_PRICE_PER_BYTE;
             assert!(
                 cost <= initial_available_balance,
                 "{} has {} deposited, {} is required for this transaction",
@@ -137,14 +143,14 @@ impl Contract {
                 initial_available_balance,
                 cost
             );
-            account.available = initial_available_balance - difference * STORAGE_PRICE_PER_BYTE;
+            account.available = initial_available_balance - difference * env::STORAGE_PRICE_PER_BYTE;
 
             self.accounts.insert(sender_id, &account);
         } else {
             // freed up storage, add to balance
             let difference: u128 = u128::from(initial_storage_usage - env::storage_usage());
             let mut account = self.get_storage_account(sender_id);
-            account.available = initial_available_balance + difference * STORAGE_PRICE_PER_BYTE;
+            account.available = initial_available_balance + difference * env::STORAGE_PRICE_PER_BYTE;
 
             self.accounts.insert(sender_id, &account);
         }
