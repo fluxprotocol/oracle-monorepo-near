@@ -120,6 +120,7 @@ impl TestAccount {
                     outcomes: None,
                     challenge_period: U64(1000),
                     data_type: DataRequestDataType::String,
+                    provider: None,
                 }
             })
             .to_string()

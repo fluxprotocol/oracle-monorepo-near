@@ -17,6 +17,7 @@ use flux_sdk::{
     types::WrappedBalance,
 };
 use near_sdk::{
+    serde_json,
     collections::Vector,
     env, ext_contract,
     json_types::{U128, U64},
@@ -129,6 +130,7 @@ impl ActiveDataRequestChange for ActiveDataRequest {
             description: request_data.description,
             tags: request_data.tags,
             data_type: request_data.data_type,
+            provider: request_data.provider,
         }
     }
 
@@ -489,7 +491,6 @@ impl Contract {
         self.data_requests.get(id.into()).is_some()
     }
 
-    // Merge config and payload
     pub fn dr_new(
         &mut self,
         sender: AccountId,
@@ -499,15 +500,17 @@ impl Contract {
         self.assert_unpaused();
         let config = self.get_config();
         let validity_bond: u128 = config.validity_bond.into();
-        self.assert_whitelisted(sender.to_string());
-        self.assert_sender(&config.payment_token);
-        self.dr_validate(&payload);
-        assert!(
-            amount >= validity_bond,
-            "Validity bond of {} not reached, received only {}",
-            validity_bond,
-            amount
-        );
+        let resolve_as_provider = match &payload.provider {
+            Some(account_id) => account_id == &env::predecessor_account_id(),
+            None => false
+        };
+
+        if !resolve_as_provider {
+            self.assert_whitelisted(sender.to_string());
+            self.assert_sender(&config.payment_token);
+            self.dr_validate(&payload);
+            assert!(amount >= validity_bond, "Validity bond of {} not reached, received only {}", validity_bond, amount);
+        }
 
         let paid_fee = amount - validity_bond;
 
@@ -521,9 +524,17 @@ impl Contract {
             payload,
         );
 
+        
         logger::log_new_data_request(&dr);
-
-        self.data_requests.push(&DataRequest::Active(dr));
+        
+        if resolve_as_provider {
+            let outcome: Outcome = serde_json::from_str(dr.tags[0].as_str()).expect("invalid outcome format");
+            let finalized_dr = self.trim_dr(dr, outcome);
+            logger::log_update_finalized_data_request(&finalized_dr);
+            self.data_requests.push(&DataRequest::Finalized(finalized_dr));
+        } else {
+            self.data_requests.push(&DataRequest::Active(dr));
+        }
 
         0
     }
@@ -655,7 +666,31 @@ impl Contract {
             .replace(request_id.into(), &DataRequest::Finalized(fdr));
     }
 
-    #[payable]
+    pub fn dr_finalize_by_provider(
+        &mut self,
+        request_id: U64,
+        outcome: Outcome,
+    ) {
+        self.assert_unpaused();
+        let initial_storage = env::storage_usage();
+        let dr = self.dr_get_expect_active(request_id.into());
+        dr.assert_valid_outcome(&outcome);
+        assert_eq!(
+            &dr.provider.expect("error this is not a provider data request"), 
+            &env::predecessor_account_id(),
+            "this request can only be finalized by the provder"
+        );
+
+        dr.requester.set_outcome(outcome.clone(), dr.tags.clone());
+
+        let fdr = self.trim_dr(dr, outcome);
+        logger::log_update_finalized_data_request(&fdr);
+        self.data_requests.replace(request_id.into(), &DataRequest::Finalized(fdr));
+
+        helpers::refund_storage(initial_storage, env::predecessor_account_id());
+
+    }
+
     pub fn dr_final_arbitrator_finalize(
         &mut self,
         request_id: U64,
@@ -768,6 +803,7 @@ mod mock_token_basic_tests {
         resolution_window::ResolutionWindow,
     };
     use near_sdk::{testing_env, MockedBlockchain, VMContext};
+    use near_sdk::serde_json::json;
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -868,6 +904,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -888,6 +925,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -908,6 +946,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -964,6 +1003,7 @@ mod mock_token_basic_tests {
                 description: None,
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -995,6 +1035,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -1015,6 +1056,7 @@ mod mock_token_basic_tests {
                 description: None,
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -1036,6 +1078,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -1057,6 +1100,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -1078,6 +1122,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -1098,6 +1143,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
         assert_eq!(amount, 0);
@@ -1114,6 +1160,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
     }
@@ -1220,6 +1267,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
 
@@ -2265,6 +2313,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
         dr_finalize(
@@ -2322,7 +2371,83 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: data_request::DataRequestDataType::String,
+                provider: None
             },
         );
+    }
+
+    #[test]
+    fn dr_new_first_party_oracle_provider_test() {
+        testing_env!(get_context(alice()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        
+        let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
+        let json_string_outcome = json!(outcome).to_string();
+        
+        contract.dr_new(
+            bob(),
+            100,
+            NewDataRequestArgs {
+                sources: Some(Vec::new()),
+                outcomes: None,
+                challenge_period: U64(1500),
+                description: Some("a".to_string()),
+                tags: vec![json_string_outcome],
+                data_type: data_request::DataRequestDataType::String,
+                provider: Some(alice())
+            },
+        );
+    }
+    
+    #[test]
+    #[should_panic(expected = "invalid outcome format")]
+    fn dr_new_provider_no_outcome() {
+        testing_env!(get_context(alice()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        
+        contract.dr_new(
+            bob(),
+            100,
+            NewDataRequestArgs {
+                sources: Some(Vec::new()),
+                outcomes: None,
+                challenge_period: U64(1500),
+                description: Some("a".to_string()),
+                tags: vec!["".to_string()],
+                data_type: data_request::DataRequestDataType::String,
+                provider: Some(alice())
+            },
+        );
+    }
+
+    #[test]
+    fn dr_new_first_party_oracle_fetch_test() {
+        testing_env!(get_context(alice()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        
+        let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
+
+        contract.dr_new(
+            bob(),
+            100,
+            NewDataRequestArgs {
+                sources: Some(Vec::new()),
+                outcomes: None,
+                challenge_period: U64(1500),
+                description: Some("a".to_string()),
+                tags: vec![],
+                data_type: data_request::DataRequestDataType::String,
+                provider: Some(bob())
+            },
+        );
+        
+        testing_env!(get_context(bob()));
+
+        contract.dr_finalize()
+
+        
     }
 }
