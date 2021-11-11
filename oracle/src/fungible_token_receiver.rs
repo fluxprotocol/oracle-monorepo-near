@@ -164,6 +164,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: DataRequestDataType::String,
+                provider: None
             },
         );
 
@@ -192,6 +193,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: DataRequestDataType::String,
+                provider: None
             },
         );
 
