@@ -33,7 +33,7 @@ impl RequesterContractUtils {
         storage_deposit(
             ORACLE_CONTRACT_ID,
             &master_account.account,
-            5140000000000000000000,
+            10000000000000000000000,
             Some(REQUESTER_CONTRACT_ID.to_string()),
         );
 
