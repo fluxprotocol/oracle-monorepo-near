@@ -11,6 +11,7 @@ use flux_sdk::{
         ActiveDataRequest, ActiveDataRequestSummary, ClaimRes, DataRequestConfig,
         DataRequestConfigSummary, DataRequestDataType, DataRequestSummary, FinalizedDataRequest,
         FinalizedDataRequestSummary, NewDataRequestArgs, StakeDataRequestArgs,
+        DataRequestType
     },
     outcome::{AnswerType, Outcome},
     resolution_window::{ResolutionWindowSummary, WindowStakeResult, ResolutionWindow},
@@ -485,6 +486,7 @@ impl ActiveDataRequestView for ActiveDataRequest {
     }
 }
 
+
 #[near_bindgen]
 impl Contract {
     pub fn dr_exists(&self, id: U64) -> bool {
@@ -500,12 +502,16 @@ impl Contract {
         self.assert_unpaused();
         let config = self.get_config();
         let validity_bond: u128 = config.validity_bond.into();
-        let resolve_as_provider = match &payload.provider {
-            Some(account_id) => account_id == &env::predecessor_account_id(),
-            None => false
+        let dr_type: DataRequestType = match &payload.provider {
+            Some(account_id) => if account_id == &env::predecessor_account_id() {
+                DataRequestType::ProviderPush
+            } else {
+                DataRequestType::ProviderFetch
+            }, 
+            None => DataRequestType::ValidatorFetch
         };
 
-        if !resolve_as_provider {
+        if dr_type == DataRequestType::ValidatorFetch {
             self.assert_whitelisted(sender.to_string());
             self.assert_sender(&config.payment_token);
             self.dr_validate(&payload);
@@ -527,7 +533,7 @@ impl Contract {
         
         logger::log_new_data_request(&dr);
         
-        if resolve_as_provider {
+        if dr_type == DataRequestType::ProviderPush {
             let outcome: Outcome = serde_json::from_str(dr.tags[0].as_str()).expect("invalid outcome format");
             let finalized_dr = self.trim_dr(dr, outcome);
             logger::log_update_finalized_data_request(&finalized_dr);
@@ -647,6 +653,8 @@ impl Contract {
 
     pub fn dr_finalize(&mut self, request_id: U64) {
         self.assert_unpaused();
+        let initial_storage = env::storage_usage();
+
         let dr = self.dr_get_expect_active(request_id.into());
         let requester = dr.requester.account_id.clone();
         let validity_bond = dr.request_config.validity_bond;
@@ -661,7 +669,7 @@ impl Contract {
         let fdr = self.trim_dr(dr, final_outcome);
         fdr.return_validity_bond(config.payment_token, requester, validity_bond);
         logger::log_update_finalized_data_request(&fdr);
-
+        helpers::refund_storage(initial_storage, env::predecessor_account_id());
         self.data_requests
             .replace(request_id.into(), &DataRequest::Finalized(fdr));
     }
@@ -675,11 +683,15 @@ impl Contract {
         let initial_storage = env::storage_usage();
         let dr = self.dr_get_expect_active(request_id.into());
         dr.assert_valid_outcome(&outcome);
-        assert_eq!(
-            &dr.provider.expect("error this is not a provider data request"), 
-            &env::predecessor_account_id(),
-            "this request can only be finalized by the provder"
-        );
+
+        match &dr.provider {
+            Some(provider) => assert_eq!(
+                provider, 
+                &env::predecessor_account_id(),
+                "this request can only be finalized by the provider"
+            ),
+            None => panic!("error this is not a provider data request")
+        };
 
         dr.requester.set_outcome(outcome.clone(), dr.tags.clone());
 
@@ -2427,7 +2439,6 @@ mod mock_token_basic_tests {
         testing_env!(get_context(alice()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
-        
         let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
 
         contract.dr_new(
@@ -2443,11 +2454,60 @@ mod mock_token_basic_tests {
                 provider: Some(bob())
             },
         );
-        
+
         testing_env!(get_context(bob()));
+        contract.dr_finalize_by_provider(U64(0), outcome);        
+    }
+    
+    #[test]
+    #[should_panic(expected = "error this is not a provider data request")]
+    fn dr_finalize_non_provider_request() {
+        testing_env!(get_context(token()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
 
-        contract.dr_finalize()
+        contract.dr_new(
+            bob(),
+            100,
+            NewDataRequestArgs {
+                sources: Some(Vec::new()),
+                outcomes: None,
+                challenge_period: U64(1500),
+                description: Some("a".to_string()),
+                tags: vec![],
+                data_type: data_request::DataRequestDataType::String,
+                provider: None
+            },
+        );
 
-        
+        testing_env!(get_context(carol()));
+        contract.dr_finalize_by_provider(U64(0), outcome);        
+    }
+
+    #[test]
+    #[should_panic(expected = "this request can only be finalized by the provider")]
+    fn dr_finalize_from_wrong_provider() {
+        testing_env!(get_context(alice()));
+        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
+
+        contract.dr_new(
+            bob(),
+            100,
+            NewDataRequestArgs {
+                sources: Some(Vec::new()),
+                outcomes: None,
+                challenge_period: U64(1500),
+                description: Some("a".to_string()),
+                tags: vec![],
+                data_type: data_request::DataRequestDataType::String,
+                provider: Some(bob())
+            },
+        );
+
+        testing_env!(get_context(carol()));
+        contract.dr_finalize_by_provider(U64(0), outcome);        
     }
 }
