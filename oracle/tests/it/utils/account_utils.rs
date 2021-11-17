@@ -174,7 +174,7 @@ impl TestAccount {
             .to_string()
             .as_bytes(),
             MAX_GAS,
-            1600000000000000000000,
+            0,
         );
 
         res.assert_success();
