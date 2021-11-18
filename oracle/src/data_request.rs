@@ -11,14 +11,12 @@ use flux_sdk::{
         ActiveDataRequest, ActiveDataRequestSummary, ClaimRes, DataRequestConfig,
         DataRequestConfigSummary, DataRequestDataType, DataRequestSummary, FinalizedDataRequest,
         FinalizedDataRequestSummary, NewDataRequestArgs, StakeDataRequestArgs,
-        DataRequestType
     },
     outcome::{AnswerType, Outcome},
     resolution_window::{ResolutionWindowSummary, WindowStakeResult, ResolutionWindow},
     types::WrappedBalance,
 };
 use near_sdk::{
-    serde_json,
     collections::Vector,
     env, ext_contract,
     json_types::{U128, U64},
@@ -493,6 +491,8 @@ impl Contract {
         self.data_requests.get(id.into()).is_some()
     }
 
+    // Payable for potential future upgrade where storage is no longer subsidized
+    #[payable]
     pub fn dr_new(
         &mut self,
         sender: AccountId,
@@ -502,21 +502,10 @@ impl Contract {
         self.assert_unpaused();
         let config = self.get_config();
         let validity_bond: u128 = config.validity_bond.into();
-        let dr_type: DataRequestType = match &payload.provider {
-            Some(account_id) => if account_id == &env::predecessor_account_id() {
-                DataRequestType::ProviderPush
-            } else {
-                DataRequestType::ProviderFetch
-            }, 
-            None => DataRequestType::ValidatorFetch
-        };
-
-        if dr_type == DataRequestType::ValidatorFetch {
-            self.assert_whitelisted(sender.to_string());
-            self.assert_sender(&config.payment_token);
-            self.dr_validate(&payload);
-            assert!(amount >= validity_bond, "Validity bond of {} not reached, received only {}", validity_bond, amount);
-        }
+        self.assert_whitelisted(sender.to_string());
+        self.assert_sender(&config.payment_token);
+        assert!(amount >= validity_bond, "Validity bond of {} not reached, received only {}", validity_bond, amount);
+        self.dr_validate(&payload);
 
         let paid_fee = amount - validity_bond;
 
@@ -532,15 +521,7 @@ impl Contract {
 
         
         logger::log_new_data_request(&dr);
-        
-        if dr_type == DataRequestType::ProviderPush {
-            let outcome: Outcome = serde_json::from_str(dr.tags[0].as_str()).expect("invalid outcome format");
-            let finalized_dr = self.trim_dr(dr, outcome);
-            logger::log_update_finalized_data_request(&finalized_dr);
-            self.data_requests.push(&DataRequest::Finalized(finalized_dr));
-        } else {
-            self.data_requests.push(&DataRequest::Active(dr));
-        }
+        self.data_requests.push(&DataRequest::Active(dr));
 
         0
     }
@@ -815,7 +796,6 @@ mod mock_token_basic_tests {
         resolution_window::ResolutionWindow,
     };
     use near_sdk::{testing_env, MockedBlockchain, VMContext};
-    use near_sdk::serde_json::json;
 
     fn alice() -> AccountId {
         "alice.near".to_string()
@@ -2389,54 +2369,8 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    fn dr_new_first_party_oracle_provider_test() {
-        testing_env!(get_context(alice()));
-        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
-        let mut contract = Contract::new(whitelist, config());
-        
-        let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
-        let json_string_outcome = json!(outcome).to_string();
-        
-        contract.dr_new(
-            bob(),
-            100,
-            NewDataRequestArgs {
-                sources: Some(Vec::new()),
-                outcomes: None,
-                challenge_period: U64(1500),
-                description: Some("a".to_string()),
-                tags: vec![json_string_outcome],
-                data_type: data_request::DataRequestDataType::String,
-                provider: Some(alice())
-            },
-        );
-    }
-    
-    #[test]
-    #[should_panic(expected = "invalid outcome format")]
-    fn dr_new_provider_no_outcome() {
-        testing_env!(get_context(alice()));
-        let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
-        let mut contract = Contract::new(whitelist, config());
-        
-        contract.dr_new(
-            bob(),
-            100,
-            NewDataRequestArgs {
-                sources: Some(Vec::new()),
-                outcomes: None,
-                challenge_period: U64(1500),
-                description: Some("a".to_string()),
-                tags: vec!["".to_string()],
-                data_type: data_request::DataRequestDataType::String,
-                provider: Some(alice())
-            },
-        );
-    }
-
-    #[test]
     fn dr_new_first_party_oracle_fetch_test() {
-        testing_env!(get_context(alice()));
+        testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
@@ -2488,7 +2422,7 @@ mod mock_token_basic_tests {
     #[test]
     #[should_panic(expected = "this request can only be finalized by the provider")]
     fn dr_finalize_from_wrong_provider() {
-        testing_env!(get_context(alice()));
+        testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
         let outcome = Outcome::Answer(AnswerType::String("1_000_000".to_string()));
