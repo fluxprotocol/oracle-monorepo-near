@@ -300,7 +300,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    #[should_panic(expected = "attempt to subtract with overflow")]
+    #[should_panic(expected = "Not enough storage available")]
     fn storage_manager_withdraw_too_much() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
