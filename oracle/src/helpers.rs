@@ -1,8 +1,6 @@
 use near_sdk::{env, AccountId, Balance, Promise, StorageUsage};
 use uint::construct_uint;
 
-const STORAGE_PRICE_PER_BYTE: Balance = 100_000_000_000_000_000_000;
-
 construct_uint! {
     /// 256-bit unsigned integer.
     pub struct u256(4);
@@ -22,7 +20,7 @@ pub fn refund_storage(initial_storage: StorageUsage, sender_id: AccountId) {
     let attached_deposit = env::attached_deposit();
     let refund_amount = if current_storage > initial_storage {
         let required_deposit =
-            Balance::from(current_storage - initial_storage) * STORAGE_PRICE_PER_BYTE;
+            Balance::from(current_storage - initial_storage) * env::STORAGE_PRICE_PER_BYTE;
         assert!(
             required_deposit <= attached_deposit,
             "The required attached deposit is {}, but the given attached deposit is is {}",
@@ -31,7 +29,7 @@ pub fn refund_storage(initial_storage: StorageUsage, sender_id: AccountId) {
         );
         attached_deposit - required_deposit
     } else {
-        attached_deposit + Balance::from(initial_storage - current_storage) * STORAGE_PRICE_PER_BYTE
+        attached_deposit + Balance::from(initial_storage - current_storage) * env::STORAGE_PRICE_PER_BYTE
     };
     if refund_amount > 0 {
         Promise::new(sender_id).transfer(refund_amount);
