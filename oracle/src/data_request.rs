@@ -123,6 +123,7 @@ impl ActiveDataRequestChange for ActiveDataRequest {
                 validity_bond: config.validity_bond.into(),
                 stake_multiplier: requester.stake_multiplier,
                 paid_fee,
+                min_resolution_bond: config.min_resolution_bond.into()
             },
             initial_challenge_period: request_data.challenge_period.into(),
             final_arbitrator_triggered: false,
@@ -434,15 +435,13 @@ impl ActiveDataRequestView for ActiveDataRequest {
             self.request_config.validity_bond
         };
 
-        env::log(
-            format!(
-                "base bond: {:?} multiplier: {:?}",
-                base_bond, self.request_config.stake_multiplier
-            )
-            .as_bytes(),
-        );
+        let res_bond = if base_bond < self.request_config.min_resolution_bond {
+            self.request_config.min_resolution_bond
+        } else {
+            base_bond
+        };
 
-        multiply_stake(base_bond, self.request_config.stake_multiplier)
+        multiply_stake(res_bond, self.request_config.stake_multiplier)
     }
 
     /**
@@ -479,6 +478,7 @@ impl ActiveDataRequestView for ActiveDataRequest {
                 validity_bond: U128(self.request_config.validity_bond),
                 paid_fee: U128(self.request_config.paid_fee),
                 stake_multiplier: self.request_config.stake_multiplier,
+                min_resolution_bond: U128(self.request_config.min_resolution_bond)
             },
         }
     }
@@ -526,8 +526,6 @@ impl Contract {
         0
     }
 
-    // AUDIT: `dr_stake` doesn't handle storage, but `dr_unstake` does. Make it consistent.
-    // SOLUTION: handle storage here
     #[payable]
     pub fn dr_stake(
         &mut self,
@@ -855,6 +853,7 @@ mod mock_token_basic_tests {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 10_000,
             },
+            min_resolution_bond: U128(100)
         }
     }
 
@@ -1718,6 +1717,7 @@ mod mock_token_basic_tests {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut config = config();
+        config.min_resolution_bond = U128(2);
         config.validity_bond = U128(2);
         let mut contract = Contract::new(whitelist, config);
         dr_new(&mut contract);
@@ -2292,6 +2292,7 @@ mod mock_token_basic_tests {
         let fixed_fee = 20;
         let whitelist = Some(vec![bob_requester, registry_entry(carol())]);
         let mut config = config();
+        config.min_resolution_bond = U128(2);
         let validity_bond = 2;
         config.validity_bond = U128(validity_bond);
         let mut contract = Contract::new(whitelist, config);

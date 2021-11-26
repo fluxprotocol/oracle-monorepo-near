@@ -21,6 +21,7 @@ impl OracleUtils {
     pub fn new(
         master_account: &TestAccount,
         validity_bond: u128,
+        min_resolution_bond: u128,
         final_arbitrator_invoke_amount: u128,
         stake_multiplier: Option<u16>,
     ) -> Self {
@@ -39,6 +40,7 @@ impl OracleUtils {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
             },
+            min_resolution_bond: U128(min_resolution_bond)
         };
 
         // deploy token

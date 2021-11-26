@@ -10,6 +10,7 @@ fn dr_scenario_1() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: None,
         validity_bond,
+        min_resolution_bond: 1,
         final_arbitrator_invoke_amount: 2500,
     }));
     let init_balance_alice = init_res.alice.get_token_balance(None);
@@ -149,6 +150,7 @@ fn dr_scenario_2() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: None,
         validity_bond,
+        min_resolution_bond: 2,
         final_arbitrator_invoke_amount: 2500,
     }));
     let init_balance_alice = init_res.alice.get_token_balance(None);
@@ -294,6 +296,7 @@ fn dr_scenario_3() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: None,
         validity_bond,
+        min_resolution_bond: 2,
         final_arbitrator_invoke_amount: 2500,
     }));
     let init_balance_alice = init_res.alice.get_token_balance(None);
@@ -481,6 +484,7 @@ fn dr_scenario_multiplier() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: None,
         validity_bond,
+        min_resolution_bond: 1,
         final_arbitrator_invoke_amount: 2500,
     }));
     let init_balance_alice = init_res.alice.get_token_balance(None);
@@ -577,6 +581,7 @@ fn dr_scenario_fixed_fee() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: None,
         validity_bond,
+        min_resolution_bond: 1,
         final_arbitrator_invoke_amount: 2500,
     }));
     let init_balance_alice = init_res.alice.get_token_balance(None);

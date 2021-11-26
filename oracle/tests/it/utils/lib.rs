@@ -41,7 +41,7 @@ pub const TOKEN_CONTRACT_ID: &str = "token";
 pub const ORACLE_CONTRACT_ID: &str = "oracle";
 pub const REQUESTER_CONTRACT_ID: &str = "requester";
 pub const SAFE_STORAGE_AMOUNT: u128 = 1250000000000000000000;
-pub const VALIDITY_BOND: u128 = 100;
+pub const VALIDITY_BOND: u128 = 1;
 
 pub fn calc_product(a: u128, b: u128, divisor: u128) -> u128 {
     let a_u256 = u256::from(a);
@@ -84,6 +84,7 @@ pub struct TestUtils {
 pub struct TestSetupArgs {
     pub stake_multiplier: Option<u16>,
     pub validity_bond: u128,
+    pub min_resolution_bond: u128,
     pub final_arbitrator_invoke_amount: u128,
 }
 
@@ -92,6 +93,7 @@ impl TestUtils {
         let args = test_setup_args.unwrap_or(TestSetupArgs {
             stake_multiplier: None,
             validity_bond: VALIDITY_BOND,
+            min_resolution_bond: 100,
             final_arbitrator_invoke_amount: 2500,
         });
 
@@ -100,6 +102,7 @@ impl TestUtils {
         let oracle_init_res = oracle_utils::OracleUtils::new(
             &master_account,
             args.validity_bond,
+            args.min_resolution_bond,
             args.final_arbitrator_invoke_amount,
             args.stake_multiplier,
         ); // Init oracle

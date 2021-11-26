@@ -8,16 +8,18 @@ use flux_sdk::{
 fn dr_claim_flow() {
     let stake_amount = to_yocto("250");
     let stake_cost = 200;
-    let validity_bond = 100;
+    let validity_bond = 1;
     let fee = 5;
 
     let init_res = TestUtils::init(None);
     let init_balance_alice = init_res.alice.get_token_balance(None);
-
+    
     let _res = init_res.alice.dr_new(fee, None);
     let post_new_balance_oracle = init_res
         .alice
         .get_token_balance(Some(ORACLE_CONTRACT_ID.to_string()));
+
+    
     assert_eq!(post_new_balance_oracle, validity_bond + fee);
 
     let dr_exist = init_res.alice.dr_exists(0);
@@ -52,6 +54,7 @@ fn dr_fixed_fee_flow() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: None,
         validity_bond: 1,
+        min_resolution_bond: 1,
         final_arbitrator_invoke_amount: 2500,
     }));
 
@@ -96,6 +99,7 @@ fn dr_multiplier_flow() {
     let init_res = TestUtils::init(Some(TestSetupArgs {
         stake_multiplier: Some(multiplier_amount),
         validity_bond: 1,
+        min_resolution_bond: 1,
         final_arbitrator_invoke_amount: 2500,
     }));
     let init_balance_alice = init_res.alice.get_token_balance(None);
