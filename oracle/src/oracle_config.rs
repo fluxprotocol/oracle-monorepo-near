@@ -9,8 +9,6 @@ impl Contract {
 
     #[payable]
     pub fn set_config(&mut self, new_config: OracleConfig) {
-        // AUDIT: Validate account IDs and other data from the config.
-        // SOLUTION: Find out what other configurations need to be set and add assertions
         self.assert_gov();
         assert!(u128::from(new_config.validity_bond) > 0, "validity bond has to be higher than 0");
         assert!(u128::from(new_config.min_resolution_bond) > 0, "resolution bond has to be higher than 0");
