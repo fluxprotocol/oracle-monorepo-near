@@ -10,8 +10,14 @@ impl Contract {
     #[payable]
     pub fn set_config(&mut self, new_config: OracleConfig) {
         self.assert_gov();
-        assert!(u128::from(new_config.validity_bond) > 0, "validity bond has to be higher than 0");
-        assert!(u128::from(new_config.min_resolution_bond) > 0, "resolution bond has to be higher than 0");
+        assert!(
+            u128::from(new_config.validity_bond) > 0,
+            "validity bond has to be higher than 0"
+        );
+        assert!(
+            u128::from(new_config.min_resolution_bond) > 0,
+            "resolution bond has to be higher than 0"
+        );
 
         let initial_storage = env::storage_usage();
 
@@ -66,8 +72,7 @@ mod mock_token_basic_tests {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
             },
-            min_resolution_bond: U128(100)
-
+            min_resolution_bond: U128(100),
         }
     }
 

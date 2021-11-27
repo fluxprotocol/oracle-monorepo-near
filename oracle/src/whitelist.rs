@@ -1,6 +1,6 @@
 use crate::requester_handler::RequesterHandler;
 use crate::*;
-use flux_sdk::{requester::Requester,config::OracleStorageKey};
+use flux_sdk::{config::OracleStorageKey, requester::Requester};
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     collections::LookupMap,
@@ -12,7 +12,8 @@ pub struct Whitelist(Option<LookupMap<AccountId, Requester>>); // maps requester
 
 impl Whitelist {
     pub fn new(initial_whitelist: Option<Vec<Requester>>) -> Self {
-        let mut whitelist: LookupMap<AccountId, Requester> = LookupMap::new(OracleStorageKey::Whitelist);
+        let mut whitelist: LookupMap<AccountId, Requester> =
+            LookupMap::new(OracleStorageKey::Whitelist);
 
         match initial_whitelist {
             Some(initial_whitelist) => {

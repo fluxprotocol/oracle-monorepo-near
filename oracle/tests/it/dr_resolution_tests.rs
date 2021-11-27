@@ -13,13 +13,12 @@ fn dr_claim_flow() {
 
     let init_res = TestUtils::init(None);
     let init_balance_alice = init_res.alice.get_token_balance(None);
-    
+
     let _res = init_res.alice.dr_new(fee, None);
     let post_new_balance_oracle = init_res
         .alice
         .get_token_balance(Some(ORACLE_CONTRACT_ID.to_string()));
 
-    
     assert_eq!(post_new_balance_oracle, validity_bond + fee);
 
     let dr_exist = init_res.alice.dr_exists(0);

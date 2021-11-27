@@ -28,7 +28,9 @@ mod fungible_token;
 
 pub use callback_args::*;
 
-use flux_sdk::{config::OracleConfig, data_request::DataRequest, requester::Requester, config::OracleStorageKey};
+use flux_sdk::{
+    config::OracleConfig, config::OracleStorageKey, data_request::DataRequest, requester::Requester,
+};
 use storage_manager::AccountStorageBalance;
 
 #[near_bindgen]
@@ -38,7 +40,7 @@ pub struct Contract {
     pub configs: Vector<OracleConfig>,
     pub data_requests: Vector<DataRequest>,
     pub accounts: LookupMap<AccountId, AccountStorageBalance>, // storage map
-    pub paused: bool
+    pub paused: bool,
 }
 
 impl Default for Contract {
@@ -60,7 +62,7 @@ impl Contract {
             configs,
             data_requests: Vector::new(OracleStorageKey::DataRequests),
             accounts: LookupMap::new(OracleStorageKey::Accounts),
-            paused: false
+            paused: false,
         }
     }
 }

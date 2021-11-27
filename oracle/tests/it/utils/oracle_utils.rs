@@ -40,7 +40,7 @@ impl OracleUtils {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
             },
-            min_resolution_bond: U128(min_resolution_bond)
+            min_resolution_bond: U128(min_resolution_bond),
         };
 
         // deploy token
