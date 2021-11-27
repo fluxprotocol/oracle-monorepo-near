@@ -72,7 +72,7 @@ mod mock_token_basic_tests {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
             },
-            min_resolution_bond: U128(100)
+            min_resolution_bond: U128(100),
         }
     }
 

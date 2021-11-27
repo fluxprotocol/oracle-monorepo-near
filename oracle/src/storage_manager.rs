@@ -80,10 +80,7 @@ impl StorageManager for Contract {
         let account_id = env::predecessor_account_id();
         let mut account = self.get_storage_account(&account_id);
 
-        assert!(
-            amount <= account.available,
-            "Not enough storage available"
-        );
+        assert!(amount <= account.available, "Not enough storage available");
 
         account.available -= amount;
         account.total -= amount;
@@ -143,14 +140,16 @@ impl Contract {
                 initial_available_balance,
                 cost
             );
-            account.available = initial_available_balance - difference * env::STORAGE_PRICE_PER_BYTE;
+            account.available =
+                initial_available_balance - difference * env::STORAGE_PRICE_PER_BYTE;
 
             self.accounts.insert(sender_id, &account);
         } else {
             // freed up storage, add to balance
             let difference: u128 = u128::from(initial_storage_usage - env::storage_usage());
             let mut account = self.get_storage_account(sender_id);
-            account.available = initial_available_balance + difference * env::STORAGE_PRICE_PER_BYTE;
+            account.available =
+                initial_available_balance + difference * env::STORAGE_PRICE_PER_BYTE;
 
             self.accounts.insert(sender_id, &account);
         }
@@ -218,7 +217,7 @@ mod mock_token_basic_tests {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
             },
-            min_resolution_bond: U128(100)
+            min_resolution_bond: U128(100),
         }
     }
 

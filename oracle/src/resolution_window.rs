@@ -33,9 +33,7 @@ impl ResolutionWindowHandler for ResolutionWindow {
             start_time,
             end_time: start_time + challenge_period,
             bond_size: prev_bond * 2,
-            outcome_to_stake: LookupMap::new(
-                format!("ots{}:{}", dr_id, round).as_bytes().to_vec()
-            ),
+            outcome_to_stake: LookupMap::new(format!("ots{}:{}", dr_id, round).as_bytes().to_vec()),
             user_to_outcome_to_stake: LookupMap::new(
                 format!("utots{}:{}", dr_id, round).as_bytes().to_vec(),
             ),
@@ -59,7 +57,10 @@ impl ResolutionWindowHandler for ResolutionWindow {
     // @returns amount to refund users because it was not staked
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance {
         let stake_on_outcome = self.outcome_to_stake.get(&outcome).unwrap_or(0);
-        let user_stake_on_outcome = self.get_user_to_outcomes(&sender).get(&outcome).unwrap_or(0);
+        let user_stake_on_outcome = self
+            .get_user_to_outcomes(&sender)
+            .get(&outcome)
+            .unwrap_or(0);
 
         let stake_open = self.bond_size - stake_on_outcome;
         let unspent = if amount > stake_open {
@@ -76,7 +77,8 @@ impl ResolutionWindowHandler for ResolutionWindow {
         logger::log_outcome_to_stake(self.dr_id, self.round, &outcome, new_stake_on_outcome);
 
         let new_user_stake_on_outcome = user_stake_on_outcome + staked;
-        self.get_user_to_outcomes(&sender).insert(&outcome, &new_user_stake_on_outcome);
+        self.get_user_to_outcomes(&sender)
+            .insert(&outcome, &new_user_stake_on_outcome);
         self.user_to_outcome_to_stake
             .insert(&sender, &self.get_user_to_outcomes(&sender));
 
@@ -104,7 +106,10 @@ impl ResolutionWindowHandler for ResolutionWindow {
             self.bonded_outcome.is_none() || self.bonded_outcome.as_ref().unwrap() != &outcome,
             "Cannot withdraw from bonded outcome"
         );
-        let user_stake_on_outcome = self.get_user_to_outcomes(&sender).get(&outcome).unwrap_or(0);
+        let user_stake_on_outcome = self
+            .get_user_to_outcomes(&sender)
+            .get(&outcome)
+            .unwrap_or(0);
         assert!(
             user_stake_on_outcome >= amount,
             "{} has less staked on this outcome ({}) than unstake amount",
@@ -120,7 +125,8 @@ impl ResolutionWindowHandler for ResolutionWindow {
         logger::log_outcome_to_stake(self.dr_id, self.round, &outcome, new_stake_on_outcome);
 
         let new_user_stake_on_outcome = user_stake_on_outcome - amount;
-        self.get_user_to_outcomes(&sender).insert(&outcome, &new_user_stake_on_outcome);
+        self.get_user_to_outcomes(&sender)
+            .insert(&outcome, &new_user_stake_on_outcome);
         self.user_to_outcome_to_stake
             .insert(&sender, &self.get_user_to_outcomes(&sender));
         logger::log_user_stake(

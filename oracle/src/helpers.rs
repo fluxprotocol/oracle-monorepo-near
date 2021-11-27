@@ -29,7 +29,8 @@ pub fn refund_storage(initial_storage: StorageUsage, sender_id: AccountId) {
         );
         attached_deposit - required_deposit
     } else {
-        attached_deposit + Balance::from(initial_storage - current_storage) * env::STORAGE_PRICE_PER_BYTE
+        attached_deposit
+            + Balance::from(initial_storage - current_storage) * env::STORAGE_PRICE_PER_BYTE
     };
     if refund_amount > 0 {
         Promise::new(sender_id).transfer(refund_amount);

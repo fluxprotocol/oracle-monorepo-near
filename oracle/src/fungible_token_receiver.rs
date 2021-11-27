@@ -1,21 +1,16 @@
 use crate::*;
-use near_sdk::{
-    serde::{ Serialize, Deserialize },
-    serde_json,
-    env,
-    PromiseOrValue,
-    json_types::ValidAccountId,
-    near_bindgen,
-};
-use near_contract_standards::
-    fungible_token::
-    receiver::
-    FungibleTokenReceiver;
 use flux_sdk::{
     data_request::{NewDataRequestArgs, StakeDataRequestArgs},
     types::WrappedBalance,
 };
-
+use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
+use near_sdk::{
+    env,
+    json_types::ValidAccountId,
+    near_bindgen,
+    serde::{Deserialize, Serialize},
+    serde_json, PromiseOrValue,
+};
 
 #[derive(Serialize, Deserialize)]
 pub enum Payload {
@@ -36,18 +31,28 @@ impl FungibleTokenReceiver for Contract {
         let initial_storage_usage = env::storage_usage();
         let account = self.get_storage_account(&sender);
 
-        let payload: Payload = serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
+        let payload: Payload =
+            serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
         let config = self.get_config();
 
         let unspent = match payload {
             Payload::NewDataRequest(payload) => {
-                assert_eq!(config.payment_token, env::predecessor_account_id(), "ERR_WRONG_PAYMENT_TOKEN");
-                self.ft_dr_new_callback(sender.clone(), amount.into(), payload).into()
-            },
+                assert_eq!(
+                    config.payment_token,
+                    env::predecessor_account_id(),
+                    "ERR_WRONG_PAYMENT_TOKEN"
+                );
+                self.ft_dr_new_callback(sender.clone(), amount.into(), payload)
+                    .into()
+            }
             Payload::StakeDataRequest(payload) => {
-                assert_eq!(config.stake_token, env::predecessor_account_id(), "ERR_WRONG_STAKE_TOKEN");
+                assert_eq!(
+                    config.stake_token,
+                    env::predecessor_account_id(),
+                    "ERR_WRONG_STAKE_TOKEN"
+                );
                 self.dr_stake(sender.clone(), amount.into(), payload)
-            },
+            }
         };
 
         self.use_storage(&sender, initial_storage_usage, account.available);
@@ -121,7 +126,7 @@ mod mock_token_basic_tests {
                 total_value_staked: U128(10000),
                 resolution_fee_percentage: 5000, // 5%
             },
-            min_resolution_bond: U128(100)
+            min_resolution_bond: U128(100),
         }
     }
 
@@ -165,7 +170,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: DataRequestDataType::String,
-                provider: None
+                provider: None,
             },
         );
 
@@ -194,7 +199,7 @@ mod mock_token_basic_tests {
                 description: Some("a".to_string()),
                 tags: vec!["1".to_string()],
                 data_type: DataRequestDataType::String,
-                provider: None
+                provider: None,
             },
         );
 
