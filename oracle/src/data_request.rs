@@ -165,11 +165,18 @@ impl ActiveDataRequestChange for ActiveDataRequest {
         // Check if this stake is bonded for the current window and if the final arbitrator should be invoked.
         // If the final arbitrator is invoked other stake won't come through.
         if window.bonded_outcome.is_some() && !self.invoke_final_arbitrator(window.bond_size) {
+            
+            // First challenge window should have initial_challenge_period 
+            let duration = match self.resolution_windows.len() {
+                1 => self.initial_challenge_period,
+                _ => self.request_config.default_challenge_window_duration,
+            };
+
             self.resolution_windows.push(&ResolutionWindowHandler::new(
                 self.id,
                 self.resolution_windows.len() as u16,
                 window.bond_size,
-                self.request_config.default_challenge_window_duration,
+                duration,
                 env::block_timestamp(),
             ));
         }
@@ -840,7 +847,7 @@ mod mock_token_basic_tests {
         contract
     }
 
-    fn config() -> OracleConfig {
+    fn new_config(final_arb_amount: u128) -> OracleConfig {
         OracleConfig {
             gov: gov(),
             final_arbitrator: alice(),
@@ -850,7 +857,7 @@ mod mock_token_basic_tests {
             max_outcomes: 8,
             default_challenge_window_duration: U64(1000),
             min_initial_challenge_window_duration: U64(1000),
-            final_arbitrator_invoke_amount: U128(250),
+            final_arbitrator_invoke_amount: U128(final_arb_amount),
             fee: FeeConfig {
                 flux_market_cap: U128(50000),
                 total_value_staked: U128(10000),
@@ -858,6 +865,14 @@ mod mock_token_basic_tests {
             },
             min_resolution_bond: U128(100),
         }
+    }
+    
+    fn config() -> OracleConfig {
+        new_config(1_000_000)
+    }
+    
+    fn config_for_quick_final_arb() -> OracleConfig {
+        new_config(250)
     }
 
     fn get_context(predecessor_account_id: AccountId) -> VMContext {
@@ -1302,7 +1317,7 @@ mod mock_token_basic_tests {
     }
 
     #[test]
-    fn dr_stake_success_full_at_t0() {
+    fn dr_stake_success_full_at_t1() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
         let mut contract = Contract::new(whitelist, config());
@@ -1316,10 +1331,18 @@ mod mock_token_basic_tests {
                 outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string())),
             },
         );
-        // assert_eq!(b, 0, "Invalid balance");
+        
+        let _b = contract.dr_stake(
+            bob(),
+            400,
+            StakeDataRequestArgs {
+                id: U64(0),
+                outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string())),
+            },
+        );
 
         let request: ActiveDataRequest = contract.dr_get_expect_active(0.into());
-        assert_eq!(request.resolution_windows.len(), 2);
+        assert_eq!(request.resolution_windows.len(), 3);
 
         let round0: ResolutionWindow = request.resolution_windows.get(0).unwrap();
         assert_eq!(round0.round, 0);
@@ -1328,8 +1351,13 @@ mod mock_token_basic_tests {
 
         let round1: ResolutionWindow = request.resolution_windows.get(1).unwrap();
         assert_eq!(round1.round, 1);
-        assert_eq!(round1.end_time, 1000);
+        assert_eq!(round1.end_time, 1500);
         assert_eq!(round1.bond_size, 400);
+        
+        let round2: ResolutionWindow = request.resolution_windows.get(2).unwrap();
+        assert_eq!(round2.round, 2);
+        assert_eq!(round2.end_time, 1000);
+        assert_eq!(round2.bond_size, 800);
     }
 
     #[test]
@@ -1351,10 +1379,19 @@ mod mock_token_basic_tests {
                 outcome: data_request::Outcome::Answer(AnswerType::String("a".to_string())),
             },
         );
+        
+        let _b = contract.dr_stake(
+            alice(),
+            800,
+            StakeDataRequestArgs {
+                id: U64(0),
+                outcome: data_request::Outcome::Answer(AnswerType::String("b".to_string())),
+            },
+        );
         // assert_eq!(b, 100, "Invalid balance");
 
         let request: ActiveDataRequest = contract.dr_get_expect_active(0.into());
-        assert_eq!(request.resolution_windows.len(), 2);
+        assert_eq!(request.resolution_windows.len(), 3);
 
         let round0: ResolutionWindow = request.resolution_windows.get(0).unwrap();
         assert_eq!(round0.round, 0);
@@ -1363,8 +1400,13 @@ mod mock_token_basic_tests {
 
         let round1: ResolutionWindow = request.resolution_windows.get(1).unwrap();
         assert_eq!(round1.round, 1);
-        assert_eq!(round1.end_time, 1600);
+        assert_eq!(round1.end_time, 2100);
         assert_eq!(round1.bond_size, 400);
+        
+        let round2: ResolutionWindow = request.resolution_windows.get(2).unwrap();
+        assert_eq!(round2.round, 2);
+        assert_eq!(round2.end_time, 1600);
+        assert_eq!(round2.bond_size, 800);
     }
 
     #[test]
@@ -1964,7 +2006,7 @@ mod mock_token_basic_tests {
     fn d_claim_final_arb() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
-        let mut contract = Contract::new(whitelist, config());
+        let mut contract = Contract::new(whitelist, config_for_quick_final_arb());
         // needed for final arb function
         dr_new(&mut contract);
 
@@ -2101,8 +2143,7 @@ mod mock_token_basic_tests {
     fn dr_final_arb_invoked() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
-        let config = config();
-        let mut contract = Contract::new(whitelist, config);
+        let mut contract = Contract::new(whitelist, config_for_quick_final_arb());
         dr_new(&mut contract);
 
         contract.dr_stake(
@@ -2190,8 +2231,7 @@ mod mock_token_basic_tests {
     fn dr_final_arb_twice() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
-        let config = config();
-        let mut contract = Contract::new(whitelist, config);
+        let mut contract = Contract::new(whitelist, config_for_quick_final_arb());
         // needed for final arb function
         dr_new(&mut contract);
 
@@ -2228,8 +2268,7 @@ mod mock_token_basic_tests {
     fn dr_final_arb_execute() {
         testing_env!(get_context(token()));
         let whitelist = Some(vec![registry_entry(bob()), registry_entry(carol())]);
-        let config = config();
-        let mut contract = Contract::new(whitelist, config);
+        let mut contract = Contract::new(whitelist, config_for_quick_final_arb());
         // needed for final arb function
         dr_new(&mut contract);
 
