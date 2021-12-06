@@ -8,10 +8,13 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-near-sdk = { git = "https://github.com/near/near-sdk-rs.git", tag="contract_cache_v0" }
-uint = { version = "0.8.5", default-features = false }
+near-sdk = "3.1.0"
+near-contract-standards = "3.1.0"
+uint = { version = "0.9.0", default-features = false }
 serde = "1.0.118"
+flux-sdk = { git = "https://github.com/fluxprotocol/flux-sdk-rs.git", rev="c00e9ce4a1bd238b6c70119477da89967768a57b" }
 
 [dev-dependencies]
-near-sdk-sim = { git = "https://github.com/near/near-sdk-rs.git", tag="contract_cache_v0" }
+near-sdk-sim = "3.1.0"
 token = { path = "./../token" }
+request-interface = { path = "./../requester" }

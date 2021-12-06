@@ -1,0 +1,3 @@
+[submodule "requester"]
+	path = requester
+	url = https://github.com/fluxprotocol/requester-sample-contract

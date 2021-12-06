@@ -1,7 +1,8 @@
 [workspace]
 members = [
   "oracle",
-  "token"
+  "token",
+  "requester"
 ]
 
 [profile.release]
