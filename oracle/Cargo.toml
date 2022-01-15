@@ -12,7 +12,7 @@ near-sdk = "3.1.0"
 near-contract-standards = "3.1.0"
 uint = { version = "0.9.0", default-features = false }
 serde = "1.0.118"
-flux-sdk = { git = "https://github.com/fluxprotocol/flux-sdk-rs.git", rev="c00e9ce4a1bd238b6c70119477da89967768a57b" }
+flux-sdk = { git = "https://github.com/fluxprotocol/flux-sdk-rs.git", rev="cec4b47444adae75eac8f875adbbe8993500873b" }
 
 [dev-dependencies]
 near-sdk-sim = "3.1.0"
