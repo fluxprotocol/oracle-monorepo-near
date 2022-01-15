@@ -931,7 +931,7 @@ dependencies = [
 [[package]]
 name = "flux-sdk"
 version = "0.2.5"
-source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=c00e9ce4a1bd238b6c70119477da89967768a57b#c00e9ce4a1bd238b6c70119477da89967768a57b"
+source = "git+https://github.com/fluxprotocol/flux-sdk-rs.git?rev=cec4b47444adae75eac8f875adbbe8993500873b#cec4b47444adae75eac8f875adbbe8993500873b"
 dependencies = [
  "near-sdk",
  "serde",
