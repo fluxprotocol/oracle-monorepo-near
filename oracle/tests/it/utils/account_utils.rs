@@ -1,7 +1,7 @@
 use crate::utils::*;
 use flux_sdk::{
     consts::MAX_GAS,
-    data_request::{DataRequestDataType, NewDataRequestArgs},
+    data_request::DataRequestDataType,
 };
 pub fn init_balance() -> u128 {
     to_yocto("100000")
@@ -89,44 +89,25 @@ impl TestAccount {
 
     /*** Setters ***/
     pub fn dr_new(&self, fee: u128, custom_validity_bond: Option<u128>) -> ExecutionResult {
-        // Transfer validity bond to to the request interface contract, this way it has balance to pay for the DataRequest creation
-        let transfer_res = self.account.call(
+        // Transfer validity bond to to the request interface contract during data request creation
+        let dr_new_res = self.account.call(
             TOKEN_CONTRACT_ID.to_string(),
-            "ft_transfer",
-            json!({
+            "ft_transfer_call",
+            json!({ // NewDataRequestArgs
                 "receiver_id": REQUESTER_CONTRACT_ID,
                 "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),
+                "msg": json!({
+                    "sources": Some(Vec::<String>::from(vec![])),
+                    "tags": vec!["1".to_string()],
+                    "description": Some("test description".to_string()),
+                    "challenge_period": U64(1000),
+                    "data_type": DataRequestDataType::String,
+                }).to_string(),
             })
             .to_string()
             .as_bytes(),
             MAX_GAS,
             1,
-        );
-        assert!(
-            transfer_res.is_ok(),
-            "ft_transfer_call failed with res: {:?}",
-            transfer_res
-        );
-
-        let dr_new_res = self.account.call(
-            REQUESTER_CONTRACT_ID.to_string(),
-            "create_data_request",
-            json!({
-                "amount": U128(custom_validity_bond.unwrap_or(VALIDITY_BOND) + fee),
-                "payload": NewDataRequestArgs {
-                    sources: Some(vec![]),
-                    tags: vec!["1".to_string()],
-                    description: Some("test description".to_string()),
-                    outcomes: None,
-                    challenge_period: U64(1000),
-                    data_type: DataRequestDataType::String,
-                    provider: None,
-                }
-            })
-            .to_string()
-            .as_bytes(),
-            MAX_GAS,
-            0,
         );
 
         assert!(

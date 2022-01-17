@@ -969,38 +969,56 @@ mod mock_token_basic_tests {
         let x1 = Source {
             end_point: "1".to_string(),
             source_path: "1".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x2 = Source {
             end_point: "2".to_string(),
             source_path: "2".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x3 = Source {
             end_point: "3".to_string(),
             source_path: "3".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x4 = Source {
             end_point: "4".to_string(),
             source_path: "4".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x5 = Source {
             end_point: "5".to_string(),
             source_path: "5".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x6 = Source {
             end_point: "6".to_string(),
             source_path: "6".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x7 = Source {
             end_point: "7".to_string(),
             source_path: "7".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x8 = Source {
             end_point: "8".to_string(),
             source_path: "8".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         let x9 = Source {
             end_point: "9".to_string(),
             source_path: "9".to_string(),
+            http_instructions: None,
+            multiplier: None,
         };
         contract.dr_new(
             bob(),
